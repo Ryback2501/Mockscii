@@ -44,9 +44,56 @@ body {
   background: var(--panel);
   border-left: 1px solid var(--border);
   padding: 0.75rem;
+  overflow-y: auto;
 }
 
-.placeholder {
-  font-size: 0.85rem;
-  opacity: 0.7;
+.glyph-group-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  margin: 0.6rem 0 0.3rem;
+}
+
+.glyph-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.glyph {
+  font-family: monospace;
+  font-size: 1rem;
+  line-height: 1;
+  aspect-ratio: 1;
+  padding: 0;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.glyph:hover {
+  background: #3a3a3a;
+}
+
+.glyph.selected {
+  border-color: #4ea1ff;
+  background: #213447;
+}
+
+.glyph-custom {
+  margin-top: 0.6rem;
+}
+
+.glyph-custom input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.35rem;
+  font-family: monospace;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
 }

@@ -1,6 +1,7 @@
 // Mockscii entry point. The real editor is assembled here task-by-task.
 import { APP_NAME, cellKey } from './state.js';
 import { createGrid } from './grid.js';
+import { createGlyphSelector } from './glyph-selector.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
   const canvas = doc.getElementById('grid');
@@ -19,7 +20,16 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     }
   }
 
-  return { name: APP_NAME, cellKey, grid };
+  // The current glyph to paint; updated by the selector, consumed by draw mode later.
+  const tools = { glyph: null };
+  let selector = null;
+  const panel = doc.getElementById('glyph-selector');
+  if (panel) {
+    selector = createGlyphSelector(panel, { onSelect: (ch) => (tools.glyph = ch) });
+    tools.glyph = selector.getSelected();
+  }
+
+  return { name: APP_NAME, cellKey, grid, selector, tools };
 }
 
 if (typeof document !== 'undefined') {

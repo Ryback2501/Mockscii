@@ -7,6 +7,19 @@ test('app loads with grid canvas and side panel', async ({ page }) => {
   await expect(page.getByTestId('side-panel')).toBeVisible();
 });
 
+test('glyph selector renders and a glyph can be picked', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  const selector = page.getByTestId('glyph-selector');
+  await expect(selector).toBeVisible();
+
+  const glyphs = selector.locator('button.glyph');
+  expect(await glyphs.count()).toBeGreaterThan(50);
+
+  const at = selector.locator('button.glyph', { hasText: '@' });
+  await at.click();
+  await expect(at).toHaveClass(/selected/);
+});
+
 test('canvas auto-fits the grid area', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 800 });
   await page.goto('/Mockscii/');
