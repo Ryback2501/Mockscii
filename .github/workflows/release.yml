@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  # --- Validation on PR: dev -> main ---------------------------------------
+  validate:
+    name: validate-release
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Version is greater than last release
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          LAST=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          echo "package version: $VERSION, last tag: ${LAST:-none}"
+          if [ -z "$LAST" ]; then
+            echo "No previous release tag; $VERSION will be the first."; exit 0
+          fi
+          # Fail if VERSION <= LAST (sort -V puts the larger last).
+          GREATER=$(printf '%s\n%s\n' "$LAST" "$VERSION" | sort -V | tail -n1)
+          if [ "$VERSION" = "$LAST" ] || [ "$GREATER" != "$VERSION" ]; then
+            echo "::error::package version $VERSION must be greater than last release $LAST"; exit 1
+          fi
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npm run build
+      - name: Release can be generated (build artifact exists)
+        run: test -f dist/index.html
+
+  # --- Publish on merge to main --------------------------------------------
+  publish:
+    name: publish-release
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Resolve version
+        id: ver
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Skip if tag already exists
+        id: tagcheck
+        run: |
+          if git rev-parse "${{ steps.ver.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create tag
+        if: steps.tagcheck.outputs.exists == 'false'
+        run: |
+          git tag "${{ steps.ver.outputs.tag }}"
+          git push origin "${{ steps.ver.outputs.tag }}"
+      - name: Package artifact
+        if: steps.tagcheck.outputs.exists == 'false'
+        run: |
+          cd dist && zip -r "../mockscii-${{ steps.ver.outputs.tag }}.zip" . && cd ..
+      - name: Create GitHub Release
+        if: steps.tagcheck.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.ver.outputs.tag }}" \
+            "mockscii-${{ steps.ver.outputs.tag }}.zip" \
+            --title "${{ steps.ver.outputs.tag }}" \
+            --generate-notes
+      - name: Log in to Docker Hub
+        if: steps.tagcheck.outputs.exists == 'false' && env.DOCKERHUB_USERNAME != ''
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      - name: Build & push Docker image
+        if: steps.tagcheck.outputs.exists == 'false' && env.DOCKERHUB_USERNAME != ''
+        run: |
+          IMAGE="$DOCKERHUB_USERNAME/mockscii"
+          docker build -t "$IMAGE:${{ steps.ver.outputs.tag }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ steps.ver.outputs.tag }}"
+          docker push "$IMAGE:latest"

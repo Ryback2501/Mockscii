@@ -1,0 +1,48 @@
+:root {
+  --bg: #1e1e1e;
+  --panel: #252526;
+  --fg: #d4d4d4;
+  --border: #3c3c3c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, sans-serif;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+#grid-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+#grid {
+  flex: 1;
+  display: block;
+}
+
+#side-panel {
+  width: 260px;
+  flex: 0 0 260px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  padding: 0.75rem;
+}
+
+.placeholder {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}

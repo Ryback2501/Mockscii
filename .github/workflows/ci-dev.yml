@@ -1,0 +1,107 @@
+name: CI (dev)
+
+on:
+  pull_request:
+    branches: [dev]
+
+# Cancel superseded runs on the same PR so stuck/old runs don't linger.
+concurrency:
+  group: ci-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:integration
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t mockscii:ci .
+      - name: Run container
+        run: docker run -d --name mockscii -p 8080:80 mockscii:ci
+      - name: Healthcheck
+        run: |
+          for i in $(seq 1 15); do
+            if curl -fsS http://localhost:8080/Mockscii/ >/dev/null; then
+              echo "container is serving"; exit 0
+            fi
+            sleep 2
+          done
+          echo "container did not become healthy"; docker logs mockscii; exit 1
+      - name: Stop container
+        if: always()
+        run: docker rm -f mockscii || true
