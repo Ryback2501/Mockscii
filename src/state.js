@@ -14,15 +14,15 @@ export function cellKey(x, y) {
 }
 
 /**
- * Pixel size of a single grid cell for a monospace font.
- * `advanceWidth` is the measured advance of one glyph (e.g. ctx.measureText('M').width).
- * Height is the em square (no extra leading) so rows sit flush and block/box
- * glyphs tile vertically with zero spacing, like a terminal.
+ * Integer pixel size of a single grid cell.
+ * `advanceWidth` is the monospace glyph advance; `lineHeight` is the font's
+ * full line box (ascent + descent). Using the real line box means rows sit
+ * flush and block/box glyphs tile with zero spacing, like a terminal.
  */
-export function cellSize(fontSize, advanceWidth) {
+export function cellDimensions(advanceWidth, lineHeight) {
   return {
     width: Math.max(1, Math.round(advanceWidth)),
-    height: Math.max(1, Math.round(fontSize)),
+    height: Math.max(1, Math.round(lineHeight)),
   };
 }
 

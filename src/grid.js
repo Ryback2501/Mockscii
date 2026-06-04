@@ -1,14 +1,13 @@
 // Canvas-backed character grid: auto-fits its container, derives cols/rows from
-// the available pixel area divided by the cell size, and redraws crisply on resize.
-import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, cellSize, gridDimensions } from './state.js';
+// the available pixel area divided by the cell size, and redraws crisply on
+// resize. Cells are sized to the font's real metrics; each glyph is scaled to
+// fill its cell exactly (so block/box glyphs tile seamlessly and every cell's
+// background covers the whole cell) and drawn on a shared baseline.
+import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, cellDimensions, gridDimensions } from './state.js';
 
 const BG_COLOR = '#1e1e1e';
-const GRID_LINE = 'rgba(255, 255, 255, 0.05)';
+const DEFAULT_FG = '#d4d4d4';
 
-/**
- * Create a grid controller bound to a <canvas>.
- * Returns { grid, resize, render } where `grid` holds the live { cols, rows, cell }.
- */
 export function createGrid(canvas, options = {}) {
   const win = options.window ?? (typeof window !== 'undefined' ? window : globalThis);
   let fontFamily = options.fontFamily ?? DEFAULT_FONT_FAMILY;
@@ -24,15 +23,25 @@ export function createGrid(canvas, options = {}) {
     fontSize,
   };
 
+  // Raw (unrounded) font metrics, used to scale each glyph onto the integer cell.
+  let advance = fontSize * 0.6;
+  let ascent = fontSize * 0.8;
+  let descent = fontSize * 0.2;
+
   const dpr = () => win.devicePixelRatio || 1;
 
   function measureCell() {
-    let advance = fontSize * 0.6; // fallback when no 2d context is available
+    advance = fontSize * 0.6;
+    ascent = fontSize * 0.8;
+    descent = fontSize * 0.2;
     if (ctx) {
       ctx.font = `${fontSize}px ${fontFamily}`;
-      advance = ctx.measureText('M').width || advance;
+      const m = ctx.measureText('M');
+      if (m.width) advance = m.width;
+      if (typeof m.fontBoundingBoxAscent === 'number') ascent = m.fontBoundingBoxAscent;
+      if (typeof m.fontBoundingBoxDescent === 'number') descent = m.fontBoundingBoxDescent;
     }
-    grid.cell = cellSize(fontSize, advance);
+    grid.cell = cellDimensions(advance, ascent + descent);
   }
 
   function render() {
@@ -44,37 +53,30 @@ export function createGrid(canvas, options = {}) {
     ctx.fillStyle = BG_COLOR;
     ctx.fillRect(0, 0, w, h);
 
-    ctx.strokeStyle = GRID_LINE;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    const right = grid.cols * grid.cell.width;
-    const bottom = grid.rows * grid.cell.height;
-    for (let c = 0; c <= grid.cols; c++) {
-      const x = Math.round(c * grid.cell.width) + 0.5;
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, bottom);
-    }
-    for (let r = 0; r <= grid.rows; r++) {
-      const y = Math.round(r * grid.cell.height) + 0.5;
-      ctx.moveTo(0, y);
-      ctx.lineTo(right, y);
-    }
-    ctx.stroke();
+    const W = grid.cell.width;
+    const H = grid.cell.height;
+    const sx = W / advance;
+    const sy = H / (ascent + descent);
 
-    // Painted cells on top of the grid lines.
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.textBaseline = 'alphabetic';
     ctx.font = `${fontSize}px ${fontFamily}`;
+
     cells.forEach((x, y, cell) => {
-      const px = x * grid.cell.width;
-      const py = y * grid.cell.height;
+      const px = x * W;
+      const py = y * H;
       if (cell.bg) {
         ctx.fillStyle = cell.bg;
-        ctx.fillRect(px, py, grid.cell.width, grid.cell.height);
+        ctx.fillRect(px, py, W, H);
       }
       if (cell.ch) {
-        ctx.fillStyle = cell.fg || '#d4d4d4';
-        ctx.fillText(cell.ch, px + grid.cell.width / 2, py + grid.cell.height / 2);
+        ctx.fillStyle = cell.fg || DEFAULT_FG;
+        // Scale the glyph's natural box onto the integer cell so it fills it.
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.scale(sx, sy);
+        ctx.fillText(cell.ch, advance / 2, ascent);
+        ctx.restore();
       }
     });
   }

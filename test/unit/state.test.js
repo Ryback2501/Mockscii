@@ -4,7 +4,7 @@ import {
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE,
   cellKey,
-  cellSize,
+  cellDimensions,
   gridDimensions,
 } from '../../src/state.js';
 
@@ -21,18 +21,14 @@ describe('state', () => {
   });
 });
 
-describe('cellSize', () => {
-  it('rounds the advance width and uses the em square for height (no leading)', () => {
-    const cell = cellSize(16, 9.6);
-    expect(cell.width).toBe(10);
-    expect(cell.height).toBe(16); // em square — zero vertical spacing
-    expect(cell.height).toBeGreaterThan(cell.width);
+describe('cellDimensions', () => {
+  it('rounds the advance to width and the line box to height', () => {
+    const cell = cellDimensions(9.6, 18.4);
+    expect(cell).toEqual({ width: 10, height: 18 });
   });
 
   it('never produces a zero-sized cell', () => {
-    const cell = cellSize(0, 0);
-    expect(cell.width).toBeGreaterThanOrEqual(1);
-    expect(cell.height).toBeGreaterThanOrEqual(1);
+    expect(cellDimensions(0, 0)).toEqual({ width: 1, height: 1 });
   });
 });
 
