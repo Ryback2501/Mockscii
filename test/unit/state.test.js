@@ -22,10 +22,10 @@ describe('state', () => {
 });
 
 describe('cellSize', () => {
-  it('rounds the advance width and derives a taller height', () => {
+  it('rounds the advance width and uses the em square for height (no leading)', () => {
     const cell = cellSize(16, 9.6);
     expect(cell.width).toBe(10);
-    expect(cell.height).toBe(Math.round(16 * 1.4));
+    expect(cell.height).toBe(16); // em square — zero vertical spacing
     expect(cell.height).toBeGreaterThan(cell.width);
   });
 

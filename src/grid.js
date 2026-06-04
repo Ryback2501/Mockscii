@@ -11,7 +11,7 @@ const GRID_LINE = 'rgba(255, 255, 255, 0.05)';
  */
 export function createGrid(canvas, options = {}) {
   const win = options.window ?? (typeof window !== 'undefined' ? window : globalThis);
-  const fontFamily = options.fontFamily ?? DEFAULT_FONT_FAMILY;
+  let fontFamily = options.fontFamily ?? DEFAULT_FONT_FAMILY;
   const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
   const cells = options.cells ?? { forEach() {} };
   const ctx = canvas.getContext ? canvas.getContext('2d') : null;
@@ -97,5 +97,11 @@ export function createGrid(canvas, options = {}) {
     return grid;
   }
 
-  return { grid, resize, render, measureCell };
+  function setFontFamily(family) {
+    fontFamily = family || DEFAULT_FONT_FAMILY;
+    grid.fontFamily = fontFamily;
+    return resize(); // re-measure the cell, re-fit cols/rows, redraw
+  }
+
+  return { grid, resize, render, measureCell, setFontFamily };
 }

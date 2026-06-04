@@ -5,6 +5,21 @@ test('app loads with grid canvas and side panel', async ({ page }) => {
   await expect(page).toHaveTitle(/Mockscii/);
   await expect(page.getByTestId('grid')).toBeVisible();
   await expect(page.getByTestId('side-panel')).toBeVisible();
+  await expect(page.getByTestId('app-title')).toHaveText('Mockscii');
+});
+
+test('choosing a font applies it globally', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  const select = page.getByTestId('font-control').locator('select');
+  await select.selectOption({ label: 'Fira Code' });
+
+  const font = await page.evaluate(() => window.__mockscii.tools.font);
+  expect(font).toContain('Fira Code');
+
+  const cssVar = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--mock-font').trim(),
+  );
+  expect(cssVar).toContain('Fira Code');
 });
 
 test('glyph selector renders and a glyph can be picked', async ({ page }) => {
