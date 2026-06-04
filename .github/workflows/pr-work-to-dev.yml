@@ -1,0 +1,70 @@
+name: PR work to dev
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-work-to-dev-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-branch:
+    name: Validate branch name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Branch must match feature|bug|chore/*
+        env:
+          HEAD: ${{ github.head_ref }}
+        run: |
+          if printf '%s' "$HEAD" | grep -qE '^(feature|bug|chore)/.+'; then
+            echo "Branch '$HEAD' is valid."
+            exit 0
+          fi
+          echo "error: branch '$HEAD' must match feature/*, bug/*, or chore/*"
+          exit 1
+
+  check-sync:
+    name: Branch is rebased on dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: merge-base HEAD origin/dev must equal origin/dev tip
+        run: |
+          git fetch origin dev
+          MB=$(git merge-base HEAD origin/dev)
+          TIP=$(git rev-parse origin/dev)
+          if [ "$MB" != "$TIP" ]; then
+            echo "error: branch is not rebased on latest dev."
+            echo "  dev tip:    $TIP"
+            echo "  merge base: $MB"
+            exit 1
+          fi
+          echo "In sync with dev."
+
+  ci:
+    name: CI
+    needs: [check-branch, check-sync]
+    uses: ./.github/workflows/ci-jobs.yml
+
+  auto-merge:
+    name: Squash auto-merge
+    needs: [ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: gh pr merge --squash --delete-branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr merge ${{ github.event.pull_request.number }} \
+            --squash --delete-branch \
+            --repo ${{ github.repository }}

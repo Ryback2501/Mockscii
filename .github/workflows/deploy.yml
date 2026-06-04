@@ -1,0 +1,28 @@
+name: Deploy (dev)
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy preview (dev, gated)
+    runs-on: ubuntu-latest
+    if: vars.DEV_DEPLOY_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - run: 'echo "TODO: publish a dev preview of the built bundle when a dev environment is wired up."'
+
+  deploy-disabled:
+    name: Deploy preview (dev, gated — DISABLED)
+    runs-on: ubuntu-latest
+    if: vars.DEV_DEPLOY_ENABLED != 'true'
+    steps:
+      - run: echo "DEV_DEPLOY_ENABLED repo variable is not 'true' — dev deploy skipped."

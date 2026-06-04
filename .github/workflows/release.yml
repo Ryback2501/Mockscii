@@ -1,107 +1,153 @@
 name: Release
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
 
 permissions:
   contents: write
-  packages: read
+  packages: write
 
 jobs:
-  # --- Validation on PR: dev -> main ---------------------------------------
-  validate:
-    name: validate-release
-    if: github.event_name == 'pull_request'
+  read-version:
+    name: Read version
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Version is greater than last release
+      - id: version
         run: |
-          VERSION="v$(node -p "require('./package.json').version")"
-          LAST=$(git tag --list 'v*' --sort=-v:refname | head -n1)
-          echo "package version: $VERSION, last tag: ${LAST:-none}"
-          if [ -z "$LAST" ]; then
-            echo "No previous release tag; $VERSION will be the first."; exit 0
+          VERSION=$(node -p "require('./package.json').version")
+          if ! printf '%s' "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "error: could not parse a semver version from package.json"; exit 1
           fi
-          # Fail if VERSION <= LAST (sort -V puts the larger last).
-          GREATER=$(printf '%s\n%s\n' "$LAST" "$VERSION" | sort -V | tail -n1)
-          if [ "$VERSION" = "$LAST" ] || [ "$GREATER" != "$VERSION" ]; then
-            echo "::error::package version $VERSION must be greater than last release $LAST"; exit 1
-          fi
-      - run: npm run lint
-      - run: npm run test:unit
-      - run: npm run test:integration
-      - run: npm run build
-      - name: Release can be generated (build artifact exists)
-        run: test -f dist/index.html
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing v$VERSION"
 
-  # --- Publish on merge to main --------------------------------------------
-  publish:
-    name: publish-release
-    if: github.event_name == 'push'
+  create-tag:
+    name: Create version tag
+    needs: [read-version]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Tag v$VERSION
+        env:
+          VERSION: ${{ needs.read-version.outputs.version }}
+        run: |
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists — skipping."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
+  create-artifacts:
+    name: Build & zip artifacts
+    needs: [read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Resolve version
-        id: ver
-        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-      - name: Skip if tag already exists
-        id: tagcheck
-        run: |
-          if git rev-parse "${{ steps.ver.outputs.tag }}" >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Create tag
-        if: steps.tagcheck.outputs.exists == 'false'
-        run: |
-          git tag "${{ steps.ver.outputs.tag }}"
-          git push origin "${{ steps.ver.outputs.tag }}"
-      - name: Package artifact
-        if: steps.tagcheck.outputs.exists == 'false'
-        run: |
-          cd dist && zip -r "../mockscii-${{ steps.ver.outputs.tag }}.zip" . && cd ..
-      - name: Create GitHub Release
-        if: steps.tagcheck.outputs.exists == 'false'
+      - name: Build & zip dist
         env:
-          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.read-version.outputs.version }}
         run: |
-          gh release create "${{ steps.ver.outputs.tag }}" \
-            "mockscii-${{ steps.ver.outputs.tag }}.zip" \
-            --title "${{ steps.ver.outputs.tag }}" \
-            --generate-notes
+          npm ci
+          npm run build
+          (cd dist && zip -qr "../mockscii-${VERSION}.zip" .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: mockscii-*.zip
+          retention-days: 7
+
+  docker-publish:
+    name: Publish image to Docker Hub (gated)
+    needs: [read-version, create-tag]
+    runs-on: ubuntu-latest
+    if: vars.DOCKERHUB_PUBLISH == 'true'
+    steps:
+      - uses: actions/checkout@v4
       - name: Log in to Docker Hub
-        if: steps.tagcheck.outputs.exists == 'false' && env.DOCKERHUB_USERNAME != ''
         env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-      - name: Build & push Docker image
-        if: steps.tagcheck.outputs.exists == 'false' && env.DOCKERHUB_USERNAME != ''
+      - name: Build & push
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          VERSION: ${{ needs.read-version.outputs.version }}
         run: |
           IMAGE="$DOCKERHUB_USERNAME/mockscii"
-          docker build -t "$IMAGE:${{ steps.ver.outputs.tag }}" -t "$IMAGE:latest" .
-          docker push "$IMAGE:${{ steps.ver.outputs.tag }}"
+          docker build -t "$IMAGE:$VERSION" -t "$IMAGE:latest" .
+          docker push "$IMAGE:$VERSION"
           docker push "$IMAGE:latest"
+
+  docker-publish-disabled:
+    name: Publish image to Docker Hub (gated — DISABLED)
+    needs: [read-version]
+    runs-on: ubuntu-latest
+    if: vars.DOCKERHUB_PUBLISH != 'true'
+    steps:
+      - run: echo "DOCKERHUB_PUBLISH repo variable is not 'true' — Docker Hub publish skipped."
+
+  github-release:
+    name: GitHub Release
+    needs: [read-version, create-tag, create-artifacts]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.read-version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" --generate-notes --title "v$VERSION" \
+            "mockscii-$VERSION.zip"
+
+  deploy:
+    name: Deploy to GitHub Pages (prod, gated)
+    needs: [github-release]
+    runs-on: ubuntu-latest
+    if: vars.PAGES_DEPLOY_ENABLED == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  deploy-disabled:
+    name: Deploy to GitHub Pages (prod, gated — DISABLED)
+    needs: [github-release]
+    runs-on: ubuntu-latest
+    if: vars.PAGES_DEPLOY_ENABLED != 'true'
+    steps:
+      - run: echo "PAGES_DEPLOY_ENABLED repo variable is not 'true' — Pages deploy skipped (nothing to release yet)."

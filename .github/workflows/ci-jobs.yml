@@ -1,13 +1,7 @@
-name: CI (dev)
+name: CI jobs
 
 on:
-  pull_request:
-    branches: [dev]
-
-# Cancel superseded runs on the same PR so stuck/old runs don't linger.
-concurrency:
-  group: ci-dev-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_call: {}
 
 permissions:
   contents: read
