@@ -16,12 +16,68 @@ describe('palette control', () => {
     tools = makeTools();
   });
 
-  it('renders swatches plus add/remove controls', () => {
+  it('renders swatches plus add/remove controls, nothing selected initially', () => {
     const p = createPalette(container, { tools, colors: ['#111111', '#222222'] });
     expect(container.querySelectorAll('button.swatch')).toHaveLength(2);
     expect(container.querySelector('.palette-add')).toBeTruthy();
     expect(container.querySelector('.palette-remove')).toBeTruthy();
-    expect(p.getSelected()).toBe(0);
+    expect(p.getSelected()).toBeNull();
+    expect(container.querySelectorAll('.swatch.selected')).toHaveLength(0);
+  });
+
+  it('deselects when the selected swatch is clicked again, reverting to the default', () => {
+    const p = createPalette(container, {
+      tools,
+      colors: ['#111111', '#222222'],
+      defaults: { fg: '#d4d4d4', bg: null },
+    });
+    const sw = container.querySelectorAll('button.swatch');
+    sw[1].click();
+    expect(tools.fg).toBe('#222222');
+    expect(p.getSelected()).toBe(1);
+
+    sw[1].click(); // click the selected swatch again -> deselect
+    expect(p.getSelected()).toBeNull();
+    expect(tools.fg).toBe('#d4d4d4'); // falls back to default
+    expect(container.querySelectorAll('.swatch.selected')).toHaveLength(0);
+  });
+
+  it('tracks foreground and background selections independently', () => {
+    const p = createPalette(container, { tools, colors: ['#111111', '#222222', '#333333'] });
+    container.querySelectorAll('.swatch')[1].click(); // fg -> #222
+    expect(tools.fg).toBe('#222222');
+
+    tools.activeChannel = 'bg';
+    p.refresh();
+    container.querySelectorAll('.swatch')[2].click(); // bg -> #333
+    expect(tools.bg).toBe('#333333');
+    expect(tools.fg).toBe('#222222'); // fg untouched
+
+    const bgIdx = [...container.querySelectorAll('.swatch')].findIndex((s) =>
+      s.classList.contains('selected'),
+    );
+    expect(bgIdx).toBe(2);
+
+    tools.activeChannel = 'fg';
+    p.refresh();
+    const fgIdx = [...container.querySelectorAll('.swatch')].findIndex((s) =>
+      s.classList.contains('selected'),
+    );
+    expect(fgIdx).toBe(1);
+  });
+
+  it('deselecting the background reverts it to no background', () => {
+    tools.activeChannel = 'bg';
+    createPalette(container, {
+      tools,
+      colors: ['#111111'],
+      defaults: { fg: '#d4d4d4', bg: null },
+    });
+    const sw = container.querySelector('.swatch');
+    sw.click();
+    expect(tools.bg).toBe('#111111');
+    sw.click();
+    expect(tools.bg).toBeNull();
   });
 
   it('assigns a clicked swatch to the active foreground channel', () => {
