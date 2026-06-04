@@ -30,7 +30,7 @@ jobs:
     name: dev contains all of main
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: rev-list count origin/dev..origin/main must be 0
@@ -48,7 +48,7 @@ jobs:
     name: Version gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Read version from package.json
