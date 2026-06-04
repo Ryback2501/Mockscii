@@ -47,6 +47,22 @@ test('select mode suppresses painting', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
 });
 
+test('palette assigns a colour to the active channel', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  const swatches = page.getByTestId('palette').locator('button.swatch');
+  const color = await swatches.nth(3).getAttribute('aria-label');
+  await swatches.nth(3).click();
+  expect(await page.evaluate(() => window.__mockscii.tools.fg)).toBe(color);
+});
+
+test('the + button opens the colour picker modal', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page.getByTestId('palette').locator('.palette-add').click();
+  await expect(page.getByTestId('color-picker')).toBeVisible();
+  await page.getByTestId('color-picker').locator('.cp-cancel').click();
+  await expect(page.getByTestId('color-picker')).toHaveCount(0);
+});
+
 test('canvas auto-fits the grid area', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 800 });
   await page.goto('/Mockscii/');
