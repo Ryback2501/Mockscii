@@ -43,7 +43,7 @@ describe('draw mode', () => {
 
     cells = createCellStore();
     grid = createGrid(canvas, { window, cells });
-    grid.resize(); // cell = 10x22 -> cols 80, rows 27
+    grid.resize(); // cell = 10x16 -> cols 80, rows 37
     tools = { glyph: '#', fg: '#fff', bg: null };
     createDrawController({ canvas, grid, cells, tools, window });
   });

@@ -6,7 +6,9 @@ import { createCellStore } from './cells.js';
 import { createDrawController } from './draw.js';
 import { createToolbar } from './toolbar.js';
 import { createPalette, DEFAULT_FG, DEFAULT_BG } from './palette.js';
+import { createFontSelector } from './font-selector.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
+import { DEFAULT_FONT } from './fonts.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
   const canvas = doc.getElementById('grid');
@@ -17,15 +19,19 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     glyph: DEFAULT_GLYPH,
     fg: DEFAULT_FG,
     bg: DEFAULT_BG,
+    font: DEFAULT_FONT,
     mode: 'draw', // 'draw' | 'select'
     activeChannel: 'fg', // which colour channel palette picks assign to
   };
+
+  // Apply the active font globally (canvas grid + glyph previews via CSS var).
+  doc.documentElement.style.setProperty('--mock-font', tools.font);
 
   let grid = null;
   let draw = null;
 
   if (canvas) {
-    grid = createGrid(canvas, { window: win, cells });
+    grid = createGrid(canvas, { window: win, cells, fontFamily: tools.font });
     grid.resize();
 
     // Re-fit whenever the grid area changes size.
@@ -37,6 +43,19 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     }
 
     draw = createDrawController({ canvas, grid, cells, tools, window: win });
+  }
+
+  let fontSelector = null;
+  const fontEl = doc.getElementById('font-control');
+  if (fontEl) {
+    fontSelector = createFontSelector(fontEl, {
+      initial: tools.font,
+      onChange: (value) => {
+        tools.font = value;
+        doc.documentElement.style.setProperty('--mock-font', value);
+        grid?.setFontFamily(value);
+      },
+    });
   }
 
   let toolbar = null;
@@ -69,7 +88,18 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     tools.glyph = selector.getSelected();
   }
 
-  return { name: APP_NAME, cellKey, grid, selector, toolbar, palette, cells, tools, draw };
+  return {
+    name: APP_NAME,
+    cellKey,
+    grid,
+    selector,
+    toolbar,
+    palette,
+    fontSelector,
+    cells,
+    tools,
+    draw,
+  };
 }
 
 if (typeof document !== 'undefined') {

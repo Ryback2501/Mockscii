@@ -47,7 +47,7 @@ describe('init (integration)', () => {
 
   it('auto-fits cols/rows from the canvas size and cell size', () => {
     const { grid } = init(document, window).grid;
-    expect(grid.cell).toEqual({ width: 10, height: Math.round(16 * 1.4) });
+    expect(grid.cell).toEqual({ width: 10, height: 16 });
     expect(grid.cols).toBe(Math.floor(800 / grid.cell.width));
     expect(grid.rows).toBe(Math.floor(600 / grid.cell.height));
   });
@@ -63,6 +63,6 @@ describe('init (integration)', () => {
     sizeCanvas(canvas, 400, 300);
     api.grid.resize();
     expect(api.grid.grid.cols).toBe(Math.floor(400 / 10));
-    expect(api.grid.grid.rows).toBe(Math.floor(300 / Math.round(16 * 1.4)));
+    expect(api.grid.grid.rows).toBe(Math.floor(300 / 16));
   });
 });
