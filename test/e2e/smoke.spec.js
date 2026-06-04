@@ -20,6 +20,22 @@ test('glyph selector renders and a glyph can be picked', async ({ page }) => {
   await expect(at).toHaveClass(/selected/);
 });
 
+test('clicking the grid paints a cell with the selected glyph', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 60, box.y + 60);
+
+  const size = await page.evaluate(() => window.__mockscii.cells.size);
+  expect(size).toBeGreaterThan(0);
+});
+
 test('canvas auto-fits the grid area', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 800 });
   await page.goto('/Mockscii/');

@@ -2,13 +2,22 @@
 import { APP_NAME, cellKey } from './state.js';
 import { createGrid } from './grid.js';
 import { createGlyphSelector } from './glyph-selector.js';
+import { createCellStore } from './cells.js';
+import { createDrawController } from './draw.js';
+import { DEFAULT_GLYPH } from './glyphs.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
   const canvas = doc.getElementById('grid');
+  const cells = createCellStore();
+
+  // Active tools. fg/bg get real values once the palette task lands.
+  const tools = { glyph: DEFAULT_GLYPH, fg: '#d4d4d4', bg: null };
+
   let grid = null;
+  let draw = null;
 
   if (canvas) {
-    grid = createGrid(canvas, { window: win });
+    grid = createGrid(canvas, { window: win, cells });
     grid.resize();
 
     // Re-fit whenever the grid area changes size.
@@ -18,20 +27,24 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     } else if (typeof win.addEventListener === 'function') {
       win.addEventListener('resize', () => grid.resize());
     }
+
+    draw = createDrawController({ canvas, grid, cells, tools, window: win });
   }
 
-  // The current glyph to paint; updated by the selector, consumed by draw mode later.
-  const tools = { glyph: null };
   let selector = null;
   const panel = doc.getElementById('glyph-selector');
   if (panel) {
-    selector = createGlyphSelector(panel, { onSelect: (ch) => (tools.glyph = ch) });
+    selector = createGlyphSelector(panel, {
+      initial: tools.glyph,
+      onSelect: (ch) => (tools.glyph = ch),
+    });
     tools.glyph = selector.getSelected();
   }
 
-  return { name: APP_NAME, cellKey, grid, selector, tools };
+  return { name: APP_NAME, cellKey, grid, selector, cells, tools, draw };
 }
 
 if (typeof document !== 'undefined') {
-  init();
+  // Expose a handle for e2e/debugging.
+  window.__mockscii = init();
 }
