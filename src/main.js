@@ -5,6 +5,7 @@ import { createGlyphSelector } from './glyph-selector.js';
 import { createCellStore } from './cells.js';
 import { createDrawController } from './draw.js';
 import { createToolbar } from './toolbar.js';
+import { createPalette } from './palette.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
@@ -44,6 +45,15 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     toolbar = createToolbar(toolbarEl, { tools });
   }
 
+  let palette = null;
+  const paletteEl = doc.getElementById('palette');
+  if (paletteEl) {
+    palette = createPalette(paletteEl, {
+      tools,
+      onAssign: () => toolbar?.refresh(),
+    });
+  }
+
   let selector = null;
   const panel = doc.getElementById('glyph-selector');
   if (panel) {
@@ -54,7 +64,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     tools.glyph = selector.getSelected();
   }
 
-  return { name: APP_NAME, cellKey, grid, selector, toolbar, cells, tools, draw };
+  return { name: APP_NAME, cellKey, grid, selector, toolbar, palette, cells, tools, draw };
 }
 
 if (typeof document !== 'undefined') {
