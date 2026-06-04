@@ -5,18 +5,18 @@ import { createGlyphSelector } from './glyph-selector.js';
 import { createCellStore } from './cells.js';
 import { createDrawController } from './draw.js';
 import { createToolbar } from './toolbar.js';
-import { createPalette } from './palette.js';
+import { createPalette, DEFAULT_FG, DEFAULT_BG } from './palette.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
   const canvas = doc.getElementById('grid');
   const cells = createCellStore();
 
-  // Active tools. fg/bg get real values once the palette task lands.
+  // Active tools.
   const tools = {
     glyph: DEFAULT_GLYPH,
-    fg: '#d4d4d4',
-    bg: null,
+    fg: DEFAULT_FG,
+    bg: DEFAULT_BG,
     mode: 'draw', // 'draw' | 'select'
     activeChannel: 'fg', // which colour channel palette picks assign to
   };
@@ -40,12 +40,17 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   }
 
   let toolbar = null;
+  let palette = null;
+
   const toolbarEl = doc.getElementById('toolbar');
   if (toolbarEl) {
-    toolbar = createToolbar(toolbarEl, { tools });
+    toolbar = createToolbar(toolbarEl, {
+      tools,
+      // Switching channel re-highlights that channel's selected swatch.
+      onChannelChange: () => palette?.refresh(),
+    });
   }
 
-  let palette = null;
   const paletteEl = doc.getElementById('palette');
   if (paletteEl) {
     palette = createPalette(paletteEl, {

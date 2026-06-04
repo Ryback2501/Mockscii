@@ -55,6 +55,20 @@ test('palette assigns a colour to the active channel', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.tools.fg)).toBe(color);
 });
 
+test('clicking the selected swatch again deselects it back to the default', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  const swatch = page.getByTestId('palette').locator('button.swatch').nth(3);
+
+  await swatch.click();
+  const picked = await page.evaluate(() => window.__mockscii.tools.fg);
+  expect(picked).not.toBe('#d4d4d4');
+
+  await swatch.click(); // click again -> deselect
+  const reverted = await page.evaluate(() => window.__mockscii.tools.fg);
+  expect(reverted).toBe('#d4d4d4');
+  await expect(page.getByTestId('palette').locator('.swatch.selected')).toHaveCount(0);
+});
+
 test('the + button opens the colour picker modal', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page.getByTestId('palette').locator('.palette-add').click();
