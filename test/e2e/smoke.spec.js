@@ -36,6 +36,17 @@ test('clicking the grid paints a cell with the selected glyph', async ({ page })
   expect(size).toBeGreaterThan(0);
 });
 
+test('select mode suppresses painting', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page.getByTestId('toolbar').locator('.tool-select').click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 80, box.y + 80);
+
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
+});
+
 test('canvas auto-fits the grid area', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 800 });
   await page.goto('/Mockscii/');

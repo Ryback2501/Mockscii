@@ -47,6 +47,41 @@ body {
   overflow-y: auto;
 }
 
+#toolbar {
+  display: flex;
+  gap: 4px;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tool {
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tool:hover {
+  background: #3a3a3a;
+}
+
+.tool.tool-fg {
+  font-weight: 700;
+}
+
+/* The pressed select-mode toggle and the active colour channel both read as "on". */
+.tool.active,
+.tool.channel-active {
+  border-color: #4ea1ff;
+  box-shadow: inset 0 0 0 1px #4ea1ff;
+}
+
 .glyph-group-title {
   font-size: 0.7rem;
   text-transform: uppercase;

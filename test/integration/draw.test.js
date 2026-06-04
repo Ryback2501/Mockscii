@@ -82,4 +82,15 @@ describe('draw mode', () => {
     mouse('mousedown', 25, 25);
     expect(cells.size).toBe(0);
   });
+
+  it('does not paint while in select mode', () => {
+    tools.mode = 'select';
+    mouse('mousedown', 25, 25);
+    mouse('mouseup', 25, 25);
+    expect(cells.size).toBe(0);
+
+    tools.mode = 'draw';
+    mouse('mousedown', 25, 25);
+    expect(cells.has(2, 1)).toBe(true);
+  });
 });

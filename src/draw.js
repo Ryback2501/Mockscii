@@ -32,6 +32,7 @@ export function createDrawController({ canvas, grid, cells, tools, window: win }
 
   function onDown(ev) {
     if (ev.button !== 0) return;
+    if (tools.mode && tools.mode !== 'draw') return; // only paint in draw mode
     painting = true;
     paint(ev);
   }
