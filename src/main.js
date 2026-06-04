@@ -4,6 +4,7 @@ import { createGrid } from './grid.js';
 import { createGlyphSelector } from './glyph-selector.js';
 import { createCellStore } from './cells.js';
 import { createDrawController } from './draw.js';
+import { createToolbar } from './toolbar.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
@@ -11,7 +12,13 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   const cells = createCellStore();
 
   // Active tools. fg/bg get real values once the palette task lands.
-  const tools = { glyph: DEFAULT_GLYPH, fg: '#d4d4d4', bg: null };
+  const tools = {
+    glyph: DEFAULT_GLYPH,
+    fg: '#d4d4d4',
+    bg: null,
+    mode: 'draw', // 'draw' | 'select'
+    activeChannel: 'fg', // which colour channel palette picks assign to
+  };
 
   let grid = null;
   let draw = null;
@@ -31,6 +38,12 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     draw = createDrawController({ canvas, grid, cells, tools, window: win });
   }
 
+  let toolbar = null;
+  const toolbarEl = doc.getElementById('toolbar');
+  if (toolbarEl) {
+    toolbar = createToolbar(toolbarEl, { tools });
+  }
+
   let selector = null;
   const panel = doc.getElementById('glyph-selector');
   if (panel) {
@@ -41,7 +54,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     tools.glyph = selector.getSelected();
   }
 
-  return { name: APP_NAME, cellKey, grid, selector, cells, tools, draw };
+  return { name: APP_NAME, cellKey, grid, selector, toolbar, cells, tools, draw };
 }
 
 if (typeof document !== 'undefined') {
