@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     if: vars.DEV_DEPLOY_ENABLED == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: 'echo "TODO: publish a dev preview of the built bundle when a dev environment is wired up."'
 
   deploy-disabled:
