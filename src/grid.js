@@ -13,6 +13,7 @@ export function createGrid(canvas, options = {}) {
   const win = options.window ?? (typeof window !== 'undefined' ? window : globalThis);
   const fontFamily = options.fontFamily ?? DEFAULT_FONT_FAMILY;
   const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
+  const cells = options.cells ?? { forEach() {} };
   const ctx = canvas.getContext ? canvas.getContext('2d') : null;
 
   const grid = {
@@ -59,6 +60,23 @@ export function createGrid(canvas, options = {}) {
       ctx.lineTo(right, y);
     }
     ctx.stroke();
+
+    // Painted cells on top of the grid lines.
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${fontSize}px ${fontFamily}`;
+    cells.forEach((x, y, cell) => {
+      const px = x * grid.cell.width;
+      const py = y * grid.cell.height;
+      if (cell.bg) {
+        ctx.fillStyle = cell.bg;
+        ctx.fillRect(px, py, grid.cell.width, grid.cell.height);
+      }
+      if (cell.ch) {
+        ctx.fillStyle = cell.fg || '#d4d4d4';
+        ctx.fillText(cell.ch, px + grid.cell.width / 2, py + grid.cell.height / 2);
+      }
+    });
   }
 
   function resize() {
