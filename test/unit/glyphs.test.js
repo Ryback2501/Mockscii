@@ -16,6 +16,25 @@ describe('glyph groups', () => {
     expect(ascii.chars[0]).toBe('!');
     expect(ascii.chars.at(-1)).toBe('~');
   });
+
+  it('covers the categories modern terminal UIs rely on', () => {
+    const labels = GLYPH_GROUPS.map((g) => g.label);
+    for (const expected of [
+      'Box drawing',
+      'Block elements',
+      'Geometric shapes',
+      'Arrows',
+      'Braille',
+    ]) {
+      expect(labels).toContain(expected);
+    }
+    // Spot-check representative glyphs are actually present.
+    const all = allGlyphs();
+    expect(all).toContain('╭'); // rounded box corner
+    expect(all).toContain('▓'); // shade block
+    expect(all).toContain('⠿'); // braille
+    expect(all).toContain('◆'); // geometric diamond
+  });
 });
 
 describe('allGlyphs', () => {

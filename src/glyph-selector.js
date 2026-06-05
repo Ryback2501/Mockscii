@@ -37,6 +37,7 @@ export function createGlyphSelector(container, options = {}) {
     const grid = doc.createElement('div');
     grid.className = 'glyph-grid';
     for (const ch of group.chars) {
+      if (buttons.has(ch)) continue; // a glyph shown once, in its first group
       const btn = doc.createElement('button');
       btn.type = 'button';
       btn.className = 'glyph';

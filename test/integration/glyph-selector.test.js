@@ -40,10 +40,11 @@ describe('glyph selector', () => {
     const sel = createGlyphSelector(container);
     const input = container.querySelector('.glyph-custom input');
 
-    input.value = '§';
+    // A CJK ideograph that is not offered in any category group.
+    input.value = '中';
     input.dispatchEvent(new window.Event('input'));
 
-    expect(sel.getSelected()).toBe('§');
+    expect(sel.getSelected()).toBe('中');
     // A custom glyph that is not in the grid clears the grid highlight.
     expect(container.querySelectorAll('button.glyph.selected')).toHaveLength(0);
   });
