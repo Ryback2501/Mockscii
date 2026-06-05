@@ -3,11 +3,15 @@
 // shows its current colour and marks which channel is "active" — the channel
 // that palette picks (a later task) will assign to.
 
+import { DEFAULT_FG } from './palette.js';
+
 export function createToolbar(container, options = {}) {
   const doc = container.ownerDocument;
   const tools = options.tools;
   const onModeChange = options.onModeChange ?? (() => {});
   const onChannelChange = options.onChannelChange ?? (() => {});
+  // tools.fg / tools.bg hold palette colour ids; resolve them for display.
+  const colorOf = options.colorOf ?? (() => undefined);
 
   function button(label, cls, title) {
     const b = doc.createElement('button');
@@ -27,11 +31,13 @@ export function createToolbar(container, options = {}) {
     selectBtn.classList.toggle('active', selecting);
     selectBtn.setAttribute('aria-pressed', String(selecting));
 
-    fgBtn.style.color = tools.fg || 'inherit';
+    const fgColor = colorOf(tools.fg) ?? DEFAULT_FG;
+    const bgColor = colorOf(tools.bg);
+    fgBtn.style.color = fgColor || 'inherit';
     fgBtn.classList.toggle('channel-active', tools.activeChannel === 'fg');
 
-    bgBtn.textContent = tools.bg ? '■' : '□';
-    bgBtn.style.color = tools.bg || 'inherit';
+    bgBtn.textContent = bgColor ? '■' : '□';
+    bgBtn.style.color = bgColor || 'inherit';
     bgBtn.classList.toggle('channel-active', tools.activeChannel === 'bg');
   }
 

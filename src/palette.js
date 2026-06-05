@@ -1,11 +1,16 @@
 // Palette control: a row of colour swatches plus + / − buttons.
 //
-// Each colour channel (foreground / background) tracks its own selected swatch
-// independently. Clicking a swatch assigns its colour to the *active* channel;
-// clicking that channel's already-selected swatch deselects it, so the channel
-// falls back to its default (foreground -> DEFAULT_FG, background -> DEFAULT_BG).
-// Double-click edits a swatch; + adds a colour; − removes the selected one and
-// falls back to the first. Add/edit use the colour-picker modal.
+// Colours live ONLY in the palette. Each entry has a stable numeric `id` that
+// never changes for the life of that colour, plus its current `color`. Tool
+// channels (foreground / background) and painted cells reference a colour by
+// its id — never by a raw hex string — so editing a palette colour updates
+// every cell using it, and removing a colour leaves references dangling so they
+// resolve back to the default (foreground -> DEFAULT_FG, background -> none).
+//
+// Each colour channel tracks its own selected id independently. Clicking a
+// swatch assigns its id to the *active* channel; clicking that channel's
+// already-selected swatch deselects it (id -> null -> default). Double-click
+// edits a swatch; + adds a colour; − removes the selected one.
 import { openColorPicker } from './color-picker.js';
 
 export const DEFAULT_FG = '#d4d4d4';
@@ -30,8 +35,10 @@ export function createPalette(container, options = {}) {
   const pickOptions = { document: doc, root: options.modalRoot ?? doc.body };
   const defaults = { fg: DEFAULT_FG, bg: DEFAULT_BG, ...(options.defaults ?? {}) };
 
-  const colors = [...(options.colors ?? DEFAULT_COLORS)];
-  // Selected swatch index per channel, or null when nothing is selected.
+  // Stable ids: monotonic, never reused. Entries are { id, color }.
+  let nextId = 1;
+  let entries = [...(options.colors ?? DEFAULT_COLORS)].map((color) => ({ id: nextId++, color }));
+  // Selected colour *id* per channel, or null when nothing is selected.
   const selection = { fg: null, bg: null };
 
   function controlButton(label, cls, title) {
@@ -53,76 +60,90 @@ export function createPalette(container, options = {}) {
   controls.append(addBtn, removeBtn);
 
   const activeChannel = () => (tools.activeChannel === 'bg' ? 'bg' : 'fg');
-  const colorFor = (ch) => (selection[ch] == null ? defaults[ch] : colors[selection[ch]]);
+  const entryById = (id) => (id == null ? undefined : entries.find((e) => e.id === id));
+  const colorOf = (id) => entryById(id)?.color;
+  const colorFor = (ch) => colorOf(selection[ch]) ?? defaults[ch];
 
   function applyChannel(ch) {
-    tools[ch] = colorFor(ch);
-    onAssign(ch, tools[ch]);
+    tools[ch] = selection[ch]; // store the id (or null), not a raw colour
+    onAssign(ch, selection[ch]);
   }
 
   function render() {
     const sel = selection[activeChannel()];
     swatches.replaceChildren();
-    colors.forEach((color, i) => {
+    entries.forEach((entry) => {
       const sw = doc.createElement('button');
       sw.type = 'button';
-      sw.className = i === sel ? 'swatch selected' : 'swatch';
-      sw.style.background = color;
-      sw.title = color;
-      sw.setAttribute('aria-label', color);
-      sw.addEventListener('click', () => toggleSwatch(i));
-      sw.addEventListener('dblclick', () => editSwatch(i));
+      sw.className = entry.id === sel ? 'swatch selected' : 'swatch';
+      sw.style.background = entry.color;
+      sw.title = entry.color;
+      sw.setAttribute('aria-label', entry.color);
+      sw.addEventListener('click', () => toggleSwatch(entry.id));
+      sw.addEventListener('dblclick', () => editSwatch(entry.id));
       swatches.appendChild(sw);
     });
   }
 
-  function toggleSwatch(i) {
+  function toggleSwatch(id) {
     const ch = activeChannel();
-    selection[ch] = selection[ch] === i ? null : i; // click selected -> deselect
+    selection[ch] = selection[ch] === id ? null : id; // click selected -> deselect
     render();
     applyChannel(ch);
   }
 
   function selectIndex(i) {
     const ch = activeChannel();
-    selection[ch] = i;
+    selection[ch] = entries[i]?.id ?? null;
     render();
     applyChannel(ch);
   }
 
-  async function editSwatch(i) {
-    const next = await pick(colors[i], pickOptions);
+  async function editSwatch(id) {
+    const entry = entryById(id);
+    if (!entry) return;
+    const next = await pick(entry.color, pickOptions);
     if (!next) return;
-    colors[i] = next;
+    entry.color = next; // same id -> every referencing cell updates on render
     render();
+    // Re-broadcast so any selection recolour reflects the new value.
     for (const ch of ['fg', 'bg']) {
-      if (selection[ch] === i) applyChannel(ch);
+      if (selection[ch] === id) applyChannel(ch);
     }
   }
 
   async function addColor() {
     const ch = activeChannel();
-    const start = selection[ch] != null ? colors[selection[ch]] : (tools[ch] ?? '#ffffff');
+    const start = colorFor(ch) ?? '#ffffff';
     const next = await pick(start, pickOptions);
     if (!next) return;
-    colors.push(next);
-    selection[ch] = colors.length - 1;
+    const entry = { id: nextId++, color: next };
+    entries.push(entry);
+    selection[ch] = entry.id;
     render();
     applyChannel(ch);
   }
 
   function removeColor() {
-    if (colors.length <= 1) return; // always keep at least one colour
+    if (entries.length <= 1) return; // always keep at least one colour
     const ch = activeChannel();
-    const idx = selection[ch];
-    if (idx == null) return; // nothing selected to remove
-    colors.splice(idx, 1);
+    const id = selection[ch];
+    if (id == null) return; // nothing selected to remove
+    entries = entries.filter((e) => e.id !== id);
+    // Any channel referencing the removed id falls back to its default.
     for (const c of ['fg', 'bg']) {
-      if (selection[c] == null) continue;
-      if (selection[c] === idx) selection[c] = null;
-      else if (selection[c] > idx) selection[c] -= 1;
+      if (selection[c] === id) selection[c] = null;
     }
-    selection[ch] = 0; // fall back to the first colour
+    render();
+    applyChannel('fg');
+    applyChannel('bg');
+  }
+
+  function setColors(newColors) {
+    const list = Array.isArray(newColors) && newColors.length ? newColors : DEFAULT_COLORS;
+    entries = list.map((color) => ({ id: nextId++, color }));
+    selection.fg = null;
+    selection.bg = null;
     render();
     applyChannel('fg');
     applyChannel('bg');
@@ -131,16 +152,19 @@ export function createPalette(container, options = {}) {
   addBtn.addEventListener('click', addColor);
   removeBtn.addEventListener('click', removeColor);
 
-  // Reflect the (initially default) channel colours into tools, then render.
-  tools.fg = colorFor('fg');
-  tools.bg = colorFor('bg');
+  // Reflect the (initially empty) channel selections into tools, then render.
+  tools.fg = selection.fg;
+  tools.bg = selection.bg;
   container.replaceChildren(swatches, controls);
   render();
 
   return {
     element: container,
     refresh: render,
-    getColors: () => [...colors],
+    colorOf,
+    getPalette: () => entries.map((e) => ({ ...e })),
+    getColors: () => entries.map((e) => e.color),
+    setColors,
     getSelected: () => selection[activeChannel()],
     getSelectedColor: () => colorFor(activeChannel()),
     add: addColor,

@@ -84,12 +84,16 @@ test('select mode suppresses painting', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
 });
 
-test('palette assigns a colour to the active channel', async ({ page }) => {
+test('palette assigns a colour id to the active channel', async ({ page }) => {
   await page.goto('/Mockscii/');
   const swatches = page.getByTestId('palette').locator('button.swatch');
   const color = await swatches.nth(3).getAttribute('aria-label');
   await swatches.nth(3).click();
-  expect(await page.evaluate(() => window.__mockscii.tools.fg)).toBe(color);
+  // The channel stores a palette colour id that resolves back to the swatch colour.
+  const resolved = await page.evaluate(() =>
+    window.__mockscii.palette.colorOf(window.__mockscii.tools.fg),
+  );
+  expect(resolved).toBe(color);
 });
 
 test('clicking the selected swatch again deselects it back to the default', async ({ page }) => {
@@ -98,11 +102,11 @@ test('clicking the selected swatch again deselects it back to the default', asyn
 
   await swatch.click();
   const picked = await page.evaluate(() => window.__mockscii.tools.fg);
-  expect(picked).not.toBe('#d4d4d4');
+  expect(picked).not.toBeNull();
 
   await swatch.click(); // click again -> deselect
   const reverted = await page.evaluate(() => window.__mockscii.tools.fg);
-  expect(reverted).toBe('#d4d4d4');
+  expect(reverted).toBeNull(); // no id -> default colour at render time
   await expect(page.getByTestId('palette').locator('.swatch.selected')).toHaveCount(0);
 });
 
