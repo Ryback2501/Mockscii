@@ -1,11 +1,11 @@
 // Font selector: a labelled dropdown of the predefined monospace fonts. The
 // chosen font-family stack is reported via onChange and applied globally.
-import { FONT_OPTIONS, DEFAULT_FONT } from './fonts.js';
+import { getAvailableFonts, DEFAULT_FONT } from './fonts.js';
 
 export function createFontSelector(container, options = {}) {
   const doc = container.ownerDocument;
   const onChange = options.onChange ?? (() => {});
-  const fonts = options.fonts ?? FONT_OPTIONS;
+  const fonts = options.fonts ?? getAvailableFonts();
 
   const label = doc.createElement('label');
   label.className = 'font-label';
