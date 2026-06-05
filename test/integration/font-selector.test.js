@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createFontSelector } from '../../src/font-selector.js';
-import { FONT_OPTIONS, DEFAULT_FONT } from '../../src/fonts.js';
+import { DEFAULT_FONT } from '../../src/fonts.js';
 import { createGrid } from '../../src/grid.js';
+
+const FONTS = [
+  { label: 'System monospace', value: 'monospace' },
+  { label: 'JetBrains Mono', value: "'JetBrains Mono', monospace" },
+  { label: 'Fira Code', value: "'Fira Code', monospace" },
+];
 
 describe('font selector', () => {
   let container;
@@ -11,18 +17,18 @@ describe('font selector', () => {
     container = document.getElementById('font-control');
   });
 
-  it('renders a labelled dropdown with every font option', () => {
-    createFontSelector(container, {});
+  it('renders a labelled dropdown of the given fonts', () => {
+    createFontSelector(container, { fonts: FONTS });
     const select = container.querySelector('select');
     expect(container.querySelector('label')).toBeTruthy();
-    expect(select.querySelectorAll('option')).toHaveLength(FONT_OPTIONS.length);
+    expect(select.querySelectorAll('option')).toHaveLength(FONTS.length);
     expect(select.value).toBe(DEFAULT_FONT);
   });
 
   it('reports the chosen value on change', () => {
     const seen = [];
-    const fs = createFontSelector(container, { onChange: (v) => seen.push(v) });
-    const target = FONT_OPTIONS[5].value;
+    const fs = createFontSelector(container, { fonts: FONTS, onChange: (v) => seen.push(v) });
+    const target = FONTS[2].value;
     fs.setValue(target);
     fs.select.dispatchEvent(new window.Event('change'));
     expect(seen).toEqual([target]);
@@ -42,6 +48,10 @@ describe('grid.setFontFamily', () => {
       textAlign: '',
       textBaseline: '',
       setTransform: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      scale: vi.fn(),
       fillRect: vi.fn(),
       beginPath: vi.fn(),
       moveTo: vi.fn(),

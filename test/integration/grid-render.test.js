@@ -6,6 +6,8 @@ function makeCtx() {
   return {
     font: '',
     fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
     textAlign: '',
     textBaseline: '',
     setTransform: vi.fn(),
@@ -14,6 +16,10 @@ function makeCtx() {
     translate: vi.fn(),
     scale: vi.fn(),
     fillRect: vi.fn(),
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
     fillText: vi.fn(),
     // Real-ish font metrics so the line box (and scale factors) are exercised.
     measureText: vi.fn(() => ({
@@ -51,16 +57,28 @@ describe('grid render', () => {
     grid.resize();
 
     const { width: W, height: H } = grid.grid.cell;
-    // Background covers the entire cell rectangle.
     expect(ctx.fillRect).toHaveBeenCalledWith(2 * W, 1 * H, W, H);
-    // Glyph is drawn within a scale transform (fills the cell, baseline-aligned).
     expect(ctx.scale).toHaveBeenCalled();
     expect(ctx.fillText).toHaveBeenCalledWith('A', expect.any(Number), expect.any(Number));
   });
 
-  it('does not draw any grid lines', () => {
+  it('renders block elements as exact rectangles, not glyphs', () => {
+    cells.set(1, 1, { ch: '█', fg: '#0f0', bg: null });
+    grid.resize();
+    const { width: W, height: H } = grid.grid.cell;
+    // Full block fills the whole cell via fillRect (no fillText for it).
+    expect(ctx.fillRect).toHaveBeenCalledWith(1 * W, 1 * H, W, H);
+    expect(ctx.fillText).not.toHaveBeenCalled();
+  });
+
+  it('draws the grid lines behind the characters', () => {
     cells.set(0, 0, { ch: '#', fg: '#fff', bg: null });
     grid.resize();
-    expect(ctx.stroke).toBeUndefined();
+
+    expect(ctx.stroke).toHaveBeenCalled();
+    // Grid lines are stroked before any glyph is filled, so cells sit on top.
+    const strokeOrder = ctx.stroke.mock.invocationCallOrder[0];
+    const fillTextOrder = ctx.fillText.mock.invocationCallOrder[0];
+    expect(strokeOrder).toBeLessThan(fillTextOrder);
   });
 });

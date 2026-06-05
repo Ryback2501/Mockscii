@@ -8,7 +8,7 @@ import { createToolbar } from './toolbar.js';
 import { createPalette, DEFAULT_FG, DEFAULT_BG } from './palette.js';
 import { createFontSelector } from './font-selector.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
-import { DEFAULT_FONT } from './fonts.js';
+import { DEFAULT_FONT, getAvailableFonts } from './fonts.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
   const canvas = doc.getElementById('grid');
@@ -48,12 +48,23 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   let fontSelector = null;
   const fontEl = doc.getElementById('font-control');
   if (fontEl) {
+    const available = getAvailableFonts({ document: doc });
+    const fontByValue = new Map(available.map((f) => [f.value, f]));
     fontSelector = createFontSelector(fontEl, {
+      fonts: available,
       initial: tools.font,
       onChange: (value) => {
         tools.font = value;
         doc.documentElement.style.setProperty('--mock-font', value);
-        grid?.setFontFamily(value);
+        // Re-measure only once the chosen font has actually loaded, so block
+        // glyphs size correctly (web fonts may not be ready synchronously).
+        const family = fontByValue.get(value)?.family;
+        const apply = () => grid?.setFontFamily(value);
+        if (family && doc.fonts?.load) {
+          doc.fonts.load(`16px "${family}"`).then(apply, apply);
+        } else {
+          apply();
+        }
       },
     });
   }
