@@ -8,6 +8,8 @@ import { createSelectionController } from './selection.js';
 import { createToolbar } from './toolbar.js';
 import { createPalette } from './palette.js';
 import { createFontSelector } from './font-selector.js';
+import { createIoControls } from './io-controls.js';
+import { serialize, deserialize, applyToCells, downloadJSON } from './io.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
 import { DEFAULT_FONT, getAvailableFonts } from './fonts.js';
 
@@ -60,27 +62,30 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     });
   }
 
+  const available = getAvailableFonts({ document: doc });
+  const fontByValue = new Map(available.map((f) => [f.value, f]));
+
+  // Apply a font globally: record it, set the CSS var, and re-measure the grid
+  // once the font has actually loaded (web fonts may not be ready synchronously).
+  function applyFont(value) {
+    tools.font = value;
+    doc.documentElement.style.setProperty('--mock-font', value);
+    const family = fontByValue.get(value)?.family;
+    const apply = () => grid?.setFontFamily(value);
+    if (family && doc.fonts?.load) {
+      doc.fonts.load(`16px "${family}"`).then(apply, apply);
+    } else {
+      apply();
+    }
+  }
+
   let fontSelector = null;
   const fontEl = doc.getElementById('font-control');
   if (fontEl) {
-    const available = getAvailableFonts({ document: doc });
-    const fontByValue = new Map(available.map((f) => [f.value, f]));
     fontSelector = createFontSelector(fontEl, {
       fonts: available,
       initial: tools.font,
-      onChange: (value) => {
-        tools.font = value;
-        doc.documentElement.style.setProperty('--mock-font', value);
-        // Re-measure only once the chosen font has actually loaded, so block
-        // glyphs size correctly (web fonts may not be ready synchronously).
-        const family = fontByValue.get(value)?.family;
-        const apply = () => grid?.setFontFamily(value);
-        if (family && doc.fonts?.load) {
-          doc.fonts.load(`16px "${family}"`).then(apply, apply);
-        } else {
-          apply();
-        }
-      },
+      onChange: (value) => applyFont(value),
     });
   }
 
@@ -121,6 +126,36 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     tools.glyph = selector.getSelected();
   }
 
+  let io = null;
+  const ioEl = doc.getElementById('io-controls');
+  if (ioEl) {
+    io = createIoControls(ioEl, {
+      onExport: () => {
+        const doc2 = serialize({
+          font: tools.font,
+          palette: palette?.getPalette() ?? [],
+          cells,
+        });
+        downloadJSON(doc2, 'mockscii.json', doc);
+      },
+      onImport: (text) => {
+        let parsed;
+        try {
+          parsed = deserialize(JSON.parse(text));
+        } catch {
+          return; // ignore invalid files
+        }
+        applyToCells(cells, parsed.cells);
+        if (parsed.palette) palette?.setPalette(parsed.palette);
+        if (parsed.font) {
+          applyFont(parsed.font);
+          fontSelector?.setValue(parsed.font);
+        }
+        grid?.render();
+      },
+    });
+  }
+
   return {
     name: APP_NAME,
     cellKey,
@@ -129,6 +164,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     toolbar,
     palette,
     fontSelector,
+    io,
     cells,
     selection,
     tools,

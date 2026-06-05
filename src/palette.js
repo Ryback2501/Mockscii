@@ -149,6 +149,24 @@ export function createPalette(container, options = {}) {
     applyChannel('bg');
   }
 
+  // Restore palette entries with their original ids (used by Import) so any
+  // cell that references an id still resolves to the right colour.
+  function setPalette(newEntries) {
+    const list = Array.isArray(newEntries)
+      ? newEntries.filter((e) => e && Number.isInteger(e.id) && typeof e.color === 'string')
+      : [];
+    entries = list.length
+      ? list.map((e) => ({ id: e.id, color: e.color }))
+      : DEFAULT_COLORS.map((color) => ({ id: nextId++, color }));
+    // Keep ids monotonic so later adds never collide with restored ones.
+    nextId = Math.max(nextId, ...entries.map((e) => e.id + 1));
+    selection.fg = null;
+    selection.bg = null;
+    render();
+    applyChannel('fg');
+    applyChannel('bg');
+  }
+
   addBtn.addEventListener('click', addColor);
   removeBtn.addEventListener('click', removeColor);
 
@@ -165,6 +183,7 @@ export function createPalette(container, options = {}) {
     getPalette: () => entries.map((e) => ({ ...e })),
     getColors: () => entries.map((e) => e.color),
     setColors,
+    setPalette,
     getSelected: () => selection[activeChannel()],
     getSelectedColor: () => colorFor(activeChannel()),
     add: addColor,
