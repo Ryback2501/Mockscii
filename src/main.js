@@ -4,6 +4,7 @@ import { createGrid } from './grid.js';
 import { createGlyphSelector } from './glyph-selector.js';
 import { createCellStore } from './cells.js';
 import { createDrawController } from './draw.js';
+import { createSelectionController } from './selection.js';
 import { createToolbar } from './toolbar.js';
 import { createPalette, DEFAULT_FG, DEFAULT_BG } from './palette.js';
 import { createFontSelector } from './font-selector.js';
@@ -13,6 +14,7 @@ import { DEFAULT_FONT, getAvailableFonts } from './fonts.js';
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
   const canvas = doc.getElementById('grid');
   const cells = createCellStore();
+  const selection = { keys: new Set(), offset: null };
 
   // Active tools.
   const tools = {
@@ -29,9 +31,10 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
 
   let grid = null;
   let draw = null;
+  let select = null;
 
   if (canvas) {
-    grid = createGrid(canvas, { window: win, cells, fontFamily: tools.font });
+    grid = createGrid(canvas, { window: win, cells, selection, fontFamily: tools.font });
     grid.resize();
 
     // Re-fit whenever the grid area changes size.
@@ -43,6 +46,15 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     }
 
     draw = createDrawController({ canvas, grid, cells, tools, window: win });
+    select = createSelectionController({
+      canvas,
+      grid,
+      cells,
+      selection,
+      tools,
+      window: win,
+      onChange: () => grid.render(),
+    });
   }
 
   let fontSelector = null;
@@ -78,6 +90,8 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
       tools,
       // Switching channel re-highlights that channel's selected swatch.
       onChannelChange: () => palette?.refresh(),
+      // Switching mode clears any cell selection.
+      onModeChange: () => select?.clear(),
     });
   }
 
@@ -85,7 +99,11 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   if (paletteEl) {
     palette = createPalette(paletteEl, {
       tools,
-      onAssign: () => toolbar?.refresh(),
+      // Assigning a colour also recolours the current selection (in select mode).
+      onAssign: (channel, color) => {
+        toolbar?.refresh();
+        select?.recolor(channel, color);
+      },
     });
   }
 
@@ -108,8 +126,10 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     palette,
     fontSelector,
     cells,
+    selection,
     tools,
     draw,
+    select,
   };
 }
 
