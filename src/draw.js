@@ -1,7 +1,6 @@
-// Draw mode: click and drag on the canvas to paint the active glyph (with the
-// current fg/bg from `tools`) into the sparse cell store, redrawing as it goes.
-
-const DEFAULT_FG = '#d4d4d4';
+// Draw mode: click and drag on the canvas to paint the active glyph into the
+// sparse cell store, redrawing as it goes. Cells store the fg/bg as palette
+// colour *ids* (or null), resolved to colours at render time.
 
 export function createDrawController({ canvas, grid, cells, tools, window: win }) {
   const w = win ?? (typeof window !== 'undefined' ? window : globalThis);
@@ -21,7 +20,7 @@ export function createDrawController({ canvas, grid, cells, tools, window: win }
   function paintCell(col, row) {
     const ch = tools.glyph;
     if (ch == null || ch === '') return;
-    cells.set(col, row, { ch, fg: tools.fg ?? DEFAULT_FG, bg: tools.bg ?? null });
+    cells.set(col, row, { ch, fg: tools.fg ?? null, bg: tools.bg ?? null });
     grid.render();
   }
 

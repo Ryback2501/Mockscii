@@ -6,7 +6,7 @@ import { createCellStore } from './cells.js';
 import { createDrawController } from './draw.js';
 import { createSelectionController } from './selection.js';
 import { createToolbar } from './toolbar.js';
-import { createPalette, DEFAULT_FG, DEFAULT_BG } from './palette.js';
+import { createPalette } from './palette.js';
 import { createFontSelector } from './font-selector.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
 import { DEFAULT_FONT, getAvailableFonts } from './fonts.js';
@@ -16,15 +16,18 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   const cells = createCellStore();
   const selection = { keys: new Set(), offset: null };
 
-  // Active tools.
+  // Active tools. fg/bg hold palette colour *ids* (null = use the default).
   const tools = {
     glyph: DEFAULT_GLYPH,
-    fg: DEFAULT_FG,
-    bg: DEFAULT_BG,
+    fg: null,
+    bg: null,
     font: DEFAULT_FONT,
     mode: 'draw', // 'draw' | 'select'
     activeChannel: 'fg', // which colour channel palette picks assign to
   };
+
+  // Resolves a palette colour id to a hex string (palette is created below).
+  const colorOf = (id) => palette?.colorOf(id);
 
   // Apply the active font globally (canvas grid + glyph previews via CSS var).
   doc.documentElement.style.setProperty('--mock-font', tools.font);
@@ -34,7 +37,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   let select = null;
 
   if (canvas) {
-    grid = createGrid(canvas, { window: win, cells, selection, fontFamily: tools.font });
+    grid = createGrid(canvas, { window: win, cells, selection, fontFamily: tools.font, colorOf });
     grid.resize();
 
     // Re-fit whenever the grid area changes size.
@@ -88,6 +91,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   if (toolbarEl) {
     toolbar = createToolbar(toolbarEl, {
       tools,
+      colorOf,
       // Switching channel re-highlights that channel's selected swatch.
       onChannelChange: () => palette?.refresh(),
       // Switching mode clears any cell selection.
@@ -99,10 +103,10 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   if (paletteEl) {
     palette = createPalette(paletteEl, {
       tools,
-      // Assigning a colour also recolours the current selection (in select mode).
-      onAssign: (channel, color) => {
+      // Assigning a colour (by id) also recolours the current selection.
+      onAssign: (channel, id) => {
         toolbar?.refresh();
-        select?.recolor(channel, color);
+        select?.recolor(channel, id);
       },
     });
   }

@@ -19,6 +19,8 @@ export function createGrid(canvas, options = {}) {
   const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
   const cells = options.cells ?? { forEach() {} };
   const selection = options.selection ?? { keys: new Set(), offset: null };
+  // Resolves a palette colour id to a hex string; dangling/null -> default.
+  const colorOf = options.colorOf ?? (() => undefined);
   const ctx = canvas.getContext ? canvas.getContext('2d') : null;
 
   const grid = {
@@ -114,12 +116,14 @@ export function createGrid(canvas, options = {}) {
     cells.forEach((x, y, cell) => {
       const px = x * W;
       const py = y * H;
-      if (cell.bg) {
-        ctx.fillStyle = cell.bg;
+      const bgColor = colorOf(cell.bg);
+      const fgColor = colorOf(cell.fg) ?? DEFAULT_FG;
+      if (bgColor) {
+        ctx.fillStyle = bgColor;
         ctx.fillRect(px, py, W, H);
       }
       if (cell.ch) {
-        ctx.fillStyle = cell.fg || DEFAULT_FG;
+        ctx.fillStyle = fgColor;
         const block = blockSpec(cell.ch);
         if (block) {
           // Block elements render as exact rectangles — pixel-perfect on any font.

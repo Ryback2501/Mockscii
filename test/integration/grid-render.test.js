@@ -44,7 +44,9 @@ describe('grid render', () => {
     Object.defineProperty(window, 'devicePixelRatio', { value: 1, configurable: true });
 
     cells = createCellStore();
-    grid = createGrid(canvas, { window, cells });
+    // Cells reference palette colour ids; resolve them for rendering.
+    const colorOf = (id) => ({ 1: '#ffffff', 2: '#222222', 3: '#00ff00' })[id];
+    grid = createGrid(canvas, { window, cells, colorOf });
   });
 
   it('sizes the cell from the font line box (advance x ascent+descent)', () => {
@@ -54,7 +56,7 @@ describe('grid render', () => {
   });
 
   it('fills the whole cell background and scales the glyph to fill the cell', () => {
-    cells.set(2, 1, { ch: 'A', fg: '#fff', bg: '#222' });
+    cells.set(2, 1, { ch: 'A', fg: 1, bg: 2 });
     grid.resize();
 
     const { width: W, height: H } = grid.grid.cell;
@@ -64,7 +66,7 @@ describe('grid render', () => {
   });
 
   it('renders block elements as exact rectangles, not glyphs', () => {
-    cells.set(1, 1, { ch: '█', fg: '#0f0', bg: null });
+    cells.set(1, 1, { ch: '█', fg: 3, bg: null });
     grid.resize();
     const { width: W, height: H } = grid.grid.cell;
     // Full block fills the whole cell via fillRect (no fillText for it).
@@ -80,7 +82,7 @@ describe('grid render', () => {
   });
 
   it('draws the grid lines behind the characters', () => {
-    cells.set(0, 0, { ch: '#', fg: '#fff', bg: null });
+    cells.set(0, 0, { ch: '#', fg: 1, bg: null });
     grid.resize();
 
     expect(ctx.stroke).toHaveBeenCalled();
