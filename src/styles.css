@@ -44,6 +44,24 @@ body {
   background: var(--panel);
   border-left: 1px solid var(--border);
   padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Top controls and the bottom Export/Import bar stay pinned; only the glyph
+   selector in the middle scrolls. */
+.app-title,
+#font-control,
+#toolbar,
+#palette,
+#io-controls {
+  flex: 0 0 auto;
+}
+
+#glyph-selector {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -161,6 +179,32 @@ body {
 }
 
 .palette-btn:hover {
+  background: #3a3a3a;
+}
+
+/* Export / Import ----------------------------------------------------- */
+#io-controls {
+  display: flex;
+  gap: 6px;
+  padding-top: 0.6rem;
+  margin-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.io-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.io-btn:hover {
   background: #3a3a3a;
 }
 

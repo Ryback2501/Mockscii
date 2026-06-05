@@ -118,6 +118,33 @@ test('the + button opens the colour picker modal', async ({ page }) => {
   await expect(page.getByTestId('color-picker')).toHaveCount(0);
 });
 
+test('export then import restores the painted cells', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+
+  // Export captures a JSON download.
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId('io-controls').locator('.io-export').click();
+  const download = await downloadPromise;
+  const path = await download.path();
+
+  // Reload wipes the in-memory state, then import restores it.
+  await page.reload();
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
+
+  await page.getByTestId('io-controls').locator('input[type=file]').setInputFiles(path);
+  await expect.poll(() => page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+});
+
 test('canvas auto-fits the grid area', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 800 });
   await page.goto('/Mockscii/');
