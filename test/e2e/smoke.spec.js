@@ -51,6 +51,28 @@ test('clicking the grid paints a cell with the selected glyph', async ({ page })
   expect(size).toBeGreaterThan(0);
 });
 
+test('select mode: select a painted cell and delete it', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+
+  // Switch to select mode, select the painted cell, delete it.
+  await page.getByTestId('toolbar').locator('.tool-select').click();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.selection.keys.size)).toBeGreaterThan(0);
+
+  await page.keyboard.press('Delete');
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
+});
+
 test('select mode suppresses painting', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page.getByTestId('toolbar').locator('.tool-select').click();

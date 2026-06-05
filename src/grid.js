@@ -18,6 +18,7 @@ export function createGrid(canvas, options = {}) {
   let fontFamily = options.fontFamily ?? DEFAULT_FONT_FAMILY;
   const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
   const cells = options.cells ?? { forEach() {} };
+  const selection = options.selection ?? { keys: new Set(), offset: null };
   const ctx = canvas.getContext ? canvas.getContext('2d') : null;
 
   const grid = {
@@ -138,6 +139,24 @@ export function createGrid(canvas, options = {}) {
         }
       }
     });
+
+    // Selection highlight, drawn on top (shifted live while a move drag is active).
+    if (selection.keys && selection.keys.size) {
+      const ox = selection.offset?.x ?? 0;
+      const oy = selection.offset?.y ?? 0;
+      ctx.save();
+      ctx.fillStyle = 'rgba(78, 161, 255, 0.25)';
+      ctx.strokeStyle = 'rgba(78, 161, 255, 0.9)';
+      ctx.lineWidth = 1;
+      selection.keys.forEach((key) => {
+        const comma = key.indexOf(',');
+        const hx = (Number(key.slice(0, comma)) + ox) * W;
+        const hy = (Number(key.slice(comma + 1)) + oy) * H;
+        ctx.fillRect(hx, hy, W, H);
+        ctx.strokeRect(hx + 0.5, hy + 0.5, W - 1, H - 1);
+      });
+      ctx.restore();
+    }
   }
 
   function resize() {

@@ -20,6 +20,7 @@ function makeCtx() {
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     stroke: vi.fn(),
+    strokeRect: vi.fn(),
     fillText: vi.fn(),
     // Real-ish font metrics so the line box (and scale factors) are exercised.
     measureText: vi.fn(() => ({
@@ -69,6 +70,13 @@ describe('grid render', () => {
     // Full block fills the whole cell via fillRect (no fillText for it).
     expect(ctx.fillRect).toHaveBeenCalledWith(1 * W, 1 * H, W, H);
     expect(ctx.fillText).not.toHaveBeenCalled();
+  });
+
+  it('draws a highlight outline for selected cells', () => {
+    const selection = { keys: new Set(['1,1']), offset: null };
+    const g = createGrid(canvas, { window, cells, selection });
+    g.resize();
+    expect(ctx.strokeRect).toHaveBeenCalled();
   });
 
   it('draws the grid lines behind the characters', () => {
