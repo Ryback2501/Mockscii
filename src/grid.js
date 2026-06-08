@@ -39,6 +39,8 @@ export function createGrid(canvas, options = {}) {
 
   // Transient overlay of cells previewed by a tool mid-drag (line/rect).
   let preview = null;
+  // Text-cursor caret position ({ x, y }) or null.
+  let cursorPos = null;
 
   const dpr = () => win.devicePixelRatio || 1;
 
@@ -150,6 +152,14 @@ export function createGrid(canvas, options = {}) {
       });
       ctx.restore();
     }
+
+    // Text caret: a vertical bar on the left edge of the cursor cell.
+    if (cursorPos) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(78, 161, 255, 0.95)';
+      ctx.fillRect(cursorPos.x * W, cursorPos.y * H, Math.max(2, W * 0.12), H);
+      ctx.restore();
+    }
   }
 
   function resize() {
@@ -187,6 +197,12 @@ export function createGrid(canvas, options = {}) {
     render();
   }
 
+  // Set (or clear) the text-cursor caret and redraw.
+  function setCursor(pos) {
+    cursorPos = pos ?? null;
+    render();
+  }
+
   // Set just the render size (ready for a future size picker).
   function setFontSize(size) {
     if (typeof size === 'number' && size > 0) {
@@ -196,5 +212,14 @@ export function createGrid(canvas, options = {}) {
     return resize();
   }
 
-  return { grid, resize, render, measureCell, setFontFamily, setFontSize, setPreview };
+  return {
+    grid,
+    resize,
+    render,
+    measureCell,
+    setFontFamily,
+    setFontSize,
+    setPreview,
+    setCursor,
+  };
 }

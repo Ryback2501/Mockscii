@@ -24,6 +24,7 @@ export const ICONS = {
   eraser: svg('<path d="M16 3l5 5L10 19H5l-3-3z"/><path d="M9 10l5 5"/><path d="M5 19h14"/>'),
   line: svg('<path d="M5 19L19 5"/>'),
   rect: svg('<rect x="4" y="6" width="16" height="12" rx="1"/>'),
+  text: svg('<path d="M5 5h14"/><path d="M12 5v14"/><path d="M9 19h6"/>'),
   bucket: svg(
     '<path d="M5 11l7-7 7 7-7 7a2 2 0 0 1-3 0l-4-4a2 2 0 0 1 0-3z"/>' +
       '<path d="M8 8l8 8"/><path d="M20 16s2 2 2 3a2 2 0 0 1-4 0c0-1 2-3 2-3z"/>',

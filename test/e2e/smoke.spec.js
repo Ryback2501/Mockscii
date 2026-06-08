@@ -138,6 +138,18 @@ test('undo and redo a painted cell via keyboard', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
 });
 
+test('text tool types characters onto the grid', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page.getByTestId('toolbar').locator('.tool-text').click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 50, box.y + 50); // drop the caret
+  await page.keyboard.type('hello');
+
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(5);
+});
+
 test('rectangle tool stamps a hollow box', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page
