@@ -138,6 +138,44 @@ test('undo and redo a painted cell via keyboard', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
 });
 
+test('copy and paste a selection', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  const cell = await page.evaluate(() => window.__mockscii.grid.grid.cell);
+  const at = (c, r) => ({ x: box.x + (c + 0.5) * cell.width, y: box.y + (r + 0.5) * cell.height });
+
+  // Paint two adjacent cells.
+  await page.mouse.click(at(5, 5).x, at(5, 5).y);
+  await page.mouse.click(at(6, 5).x, at(6, 5).y);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(2);
+
+  // Select them, copy, then paste at a different spot.
+  await page.getByTestId('toolbar').locator('.tool-select').click();
+  await page.mouse.move(at(5, 5).x, at(5, 5).y);
+  await page.mouse.down();
+  await page.mouse.move(at(6, 5).x, at(6, 5).y);
+  await page.mouse.up();
+  await page.keyboard.press('Control+c');
+  await page.mouse.move(at(10, 10).x, at(10, 10).y);
+  await page.keyboard.press('Control+v');
+
+  const res = await page.evaluate(() => ({
+    size: window.__mockscii.cells.size,
+    a: window.__mockscii.cells.has(10, 10),
+    b: window.__mockscii.cells.has(11, 10),
+  }));
+  expect(res.size).toBe(4);
+  expect(res.a).toBe(true);
+  expect(res.b).toBe(true);
+});
+
 test('text tool types characters onto the grid', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page.getByTestId('toolbar').locator('.tool-text').click();
