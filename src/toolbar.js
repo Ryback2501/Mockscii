@@ -12,6 +12,7 @@ const TOOL_DEFS = [
   { tool: 'fill', icon: ICONS.bucket, title: 'Fill' },
   { tool: 'line', icon: ICONS.line, title: 'Line' },
   { tool: 'rect', icon: ICONS.rect, title: 'Rectangle' },
+  { tool: 'text', icon: ICONS.text, title: 'Type text' },
   { tool: 'select', label: '↑', title: 'Select' },
 ];
 
@@ -123,6 +124,7 @@ export function createToolbar(container, options = {}) {
     fillButton: byTool('fill'),
     lineButton: byTool('line'),
     rectButton: byTool('rect'),
+    textButton: byTool('text'),
     fgButton: fgBtn,
     bgButton: bgBtn,
     undoButton: undoBtn,

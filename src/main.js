@@ -5,6 +5,7 @@ import { createGlyphSelector } from './glyph-selector.js';
 import { createCellStore } from './cells.js';
 import { createDrawController } from './draw.js';
 import { createSelectionController } from './selection.js';
+import { createTextCursorController } from './text-cursor.js';
 import { createToolbar } from './toolbar.js';
 import { createPalette } from './palette.js';
 import { createHistory } from './history.js';
@@ -45,6 +46,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   let grid = null;
   let draw = null;
   let select = null;
+  let textCursor = null;
 
   if (canvas) {
     grid = createGrid(canvas, {
@@ -76,6 +78,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
       onChange: () => grid.render(),
       history,
     });
+    textCursor = createTextCursorController({ canvas, grid, cells, tools, window: win, history });
 
     // Undo / redo keyboard shortcuts (ignored while typing in a form control).
     win.addEventListener?.('keydown', (ev) => {
@@ -141,9 +144,10 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
       },
       // Switching channel re-highlights that channel's selected swatch.
       onChannelChange: () => palette?.refresh(),
-      // Leaving select mode clears any active cell selection.
+      // Leaving a tool tidies up its transient state.
       onToolChange: (tool) => {
         if (tool !== 'select') select?.clear();
+        if (tool !== 'text') textCursor?.deactivate();
       },
     });
   }
@@ -216,6 +220,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     tools,
     draw,
     select,
+    textCursor,
   };
 }
 
