@@ -38,6 +38,25 @@ describe('toolbar', () => {
     expect(container.querySelector('.tool-bg')).toBeNull();
   });
 
+  it('lays the buttons out in the required order', () => {
+    createToolbar(container, { tools });
+    const order = [...container.querySelectorAll('button.tool')].map((b) =>
+      [...b.classList].find((c) => c.startsWith('tool-')),
+    );
+    expect(order).toEqual([
+      'tool-select',
+      'tool-undo',
+      'tool-redo',
+      'tool-draw',
+      'tool-erase',
+      'tool-fill',
+      'tool-line',
+      'tool-rect',
+      'tool-text',
+      'tool-clear',
+    ]);
+  });
+
   it('fires onClear when the clear button is clicked', () => {
     let cleared = 0;
     const tb = createToolbar(container, { tools, onClear: () => (cleared += 1) });
