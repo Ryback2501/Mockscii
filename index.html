@@ -14,16 +14,20 @@
   </head>
   <body>
     <main id="app">
-      <section id="grid-area" aria-label="Mockup grid">
-        <canvas id="grid" data-testid="grid"></canvas>
-      </section>
-      <aside id="side-panel" data-testid="side-panel" aria-label="Character selector">
-        <h1 class="app-title" data-testid="app-title">Mockscii</h1>
-        <div id="font-control" class="font-control" data-testid="font-control"></div>
-        <div id="toolbar" data-testid="toolbar" role="toolbar" aria-label="Tools"></div>
+      <div id="main-area">
+        <header id="top-bar" data-testid="top-bar">
+          <h1 class="app-title" data-testid="app-title">Mockscii</h1>
+          <div id="font-control" class="font-control" data-testid="font-control"></div>
+          <div id="toolbar" data-testid="toolbar" role="toolbar" aria-label="Tools"></div>
+          <div id="io-controls" data-testid="io-controls" aria-label="Export and import"></div>
+        </header>
+        <section id="grid-area" aria-label="Mockup grid">
+          <canvas id="grid" data-testid="grid"></canvas>
+        </section>
+      </div>
+      <aside id="side-panel" data-testid="side-panel" aria-label="Colour palette and characters">
         <div id="palette" data-testid="palette" aria-label="Colour palette"></div>
         <section id="glyph-selector" data-testid="glyph-selector" aria-label="Glyph selector"></section>
-        <div id="io-controls" data-testid="io-controls" aria-label="Export and import"></div>
       </aside>
     </main>
     <script type="module" src="/src/main.js"></script>
