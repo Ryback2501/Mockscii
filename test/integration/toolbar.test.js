@@ -17,14 +17,22 @@ describe('toolbar', () => {
     tools = makeTools();
   });
 
-  it('renders the select, fg, bg and undo/redo buttons', () => {
+  it('renders the select, fg, bg, undo/redo and clear buttons', () => {
     const tb = createToolbar(container, { tools });
-    // select, fg, bg, undo, redo
-    expect(container.querySelectorAll('button.tool')).toHaveLength(5);
+    // select, fg, bg, undo, redo, clear
+    expect(container.querySelectorAll('button.tool')).toHaveLength(6);
     expect(tb.selectButton.textContent).toBe('↑');
     expect(tb.fgButton.textContent).toBe('A');
     expect(container.querySelector('.tool-undo')).toBeTruthy();
     expect(container.querySelector('.tool-redo')).toBeTruthy();
+    expect(container.querySelector('.tool-clear')).toBeTruthy();
+  });
+
+  it('fires onClear when the clear button is clicked', () => {
+    let cleared = 0;
+    const tb = createToolbar(container, { tools, onClear: () => (cleared += 1) });
+    tb.clearButton.click();
+    expect(cleared).toBe(1);
   });
 
   it('reflects undo/redo availability from the history', () => {

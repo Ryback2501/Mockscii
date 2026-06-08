@@ -17,6 +17,7 @@ export function createToolbar(container, options = {}) {
   const history = options.history ?? null;
   const onUndo = options.onUndo ?? (() => {});
   const onRedo = options.onRedo ?? (() => {});
+  const onClear = options.onClear ?? (() => {});
 
   function button(label, cls, title) {
     const b = doc.createElement('button');
@@ -32,6 +33,7 @@ export function createToolbar(container, options = {}) {
   const bgBtn = button('■', 'tool-bg', 'Background colour');
   const undoBtn = iconButton(doc, 'tool tool-undo', ICONS.undo, 'Undo (Ctrl+Z)');
   const redoBtn = iconButton(doc, 'tool tool-redo', ICONS.redo, 'Redo (Ctrl+Y)');
+  const clearBtn = iconButton(doc, 'tool tool-clear', ICONS.clear, 'Clear the canvas');
 
   function refresh() {
     const selecting = tools.mode === 'select';
@@ -76,8 +78,12 @@ export function createToolbar(container, options = {}) {
     onRedo();
     refresh();
   });
+  clearBtn.addEventListener('click', () => {
+    onClear();
+    refresh();
+  });
 
-  container.replaceChildren(selectBtn, fgBtn, bgBtn, undoBtn, redoBtn);
+  container.replaceChildren(selectBtn, fgBtn, bgBtn, undoBtn, redoBtn, clearBtn);
   refresh();
 
   return {
@@ -86,6 +92,7 @@ export function createToolbar(container, options = {}) {
     selectButton: selectBtn,
     undoButton: undoBtn,
     redoButton: redoBtn,
+    clearButton: clearBtn,
     fgButton: fgBtn,
     bgButton: bgBtn,
   };

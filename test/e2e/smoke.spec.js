@@ -138,6 +138,27 @@ test('undo and redo a painted cell via keyboard', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
 });
 
+test('clear wipes the canvas and undo brings it back', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  await page.mouse.click(box.x + 90, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(2);
+
+  await page.getByTestId('toolbar').locator('.tool-clear').click();
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
+
+  await page.keyboard.press('Control+z');
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(2);
+});
+
 test('export then import restores the painted cells', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page

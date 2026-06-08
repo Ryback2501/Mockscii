@@ -132,6 +132,13 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
       history,
       onUndo: () => history.undo(),
       onRedo: () => history.redo(),
+      // Wipe the canvas as one undoable step (no-op when already empty).
+      onClear: () => {
+        if (cells.size === 0) return;
+        cells.clear();
+        select?.clear();
+        history.commit();
+      },
       // Switching channel re-highlights that channel's selected swatch.
       onChannelChange: () => palette?.refresh(),
       // Switching mode clears any cell selection.
