@@ -36,6 +36,8 @@ export function createSelectionController({
   const fire = onChange ?? (() => grid?.render?.());
   const metrics = grid.grid;
   let drag = null;
+  let clipboard = null; // [{ dx, dy, cell }] relative to the copied top-left
+  let hover = null; // last cell the pointer was over (paste target)
 
   function cellAt(ev) {
     const rect = canvas.getBoundingClientRect();
@@ -151,8 +153,83 @@ export function createSelectionController({
     fire();
   }
 
+  // Copy the painted cells in the selection, relative to the selection's
+  // top-left corner. Returns true if anything was copied.
+  function copy() {
+    const filled = [];
+    let minX = Infinity;
+    let minY = Infinity;
+    selection.keys.forEach((key) => {
+      const [x, y] = parseKey(key);
+      const cell = cells.get(x, y);
+      if (!cell) return;
+      filled.push({ x, y, cell });
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+    });
+    if (!filled.length) return false;
+    clipboard = filled.map(({ x, y, cell }) => ({ dx: x - minX, dy: y - minY, cell: { ...cell } }));
+    return true;
+  }
+
+  // Stamp the clipboard at the pointer cell (or the selection's top-left), then
+  // select the pasted block so it can be moved.
+  function paste() {
+    if (!clipboard || !clipboard.length) return false;
+    let origin = hover;
+    if (!origin && selection.keys.size) {
+      let minX = Infinity;
+      let minY = Infinity;
+      selection.keys.forEach((key) => {
+        const [x, y] = parseKey(key);
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+      });
+      origin = { x: minX, y: minY };
+    }
+    if (!origin) origin = { x: 0, y: 0 };
+
+    const next = [];
+    let changed = false;
+    for (const { dx, dy, cell } of clipboard) {
+      const x = origin.x + dx;
+      const y = origin.y + dy;
+      if (x < 0 || y < 0 || x >= metrics.cols || y >= metrics.rows) continue;
+      cells.set(x, y, { ...cell });
+      next.push(cellKey(x, y));
+      changed = true;
+    }
+    if (changed) {
+      selection.keys = new Set(next);
+      selection.offset = null;
+      history?.commit();
+      fire();
+    }
+    return changed;
+  }
+
+  function inFormField() {
+    const el = w.document && w.document.activeElement;
+    const tag = el && el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+
   function onKey(ev) {
-    if (tools.tool !== 'select' || !selection.keys.size) return;
+    if (tools.tool !== 'select' || inFormField()) return;
+    const mod = ev.ctrlKey || ev.metaKey;
+    const k = ev.key.toLowerCase();
+    if (mod && k === 'c') {
+      ev.preventDefault();
+      copy();
+      return;
+    }
+    if (mod && k === 'v') {
+      ev.preventDefault();
+      paste();
+      return;
+    }
+    if (mod) return; // leave undo/redo etc. to the global handler
+    if (!selection.keys.size) return;
     if (ev.key === 'Delete' || ev.key === 'Backspace') {
       ev.preventDefault();
       deleteSelected();
@@ -161,7 +238,14 @@ export function createSelectionController({
     }
   }
 
+  function onHover(ev) {
+    if (tools.tool !== 'select') return;
+    const pos = cellAt(ev);
+    if (pos) hover = pos;
+  }
+
   canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onHover);
   w.addEventListener('mousemove', onMove);
   w.addEventListener('mouseup', onUp);
   w.addEventListener('keydown', onKey);
@@ -171,9 +255,12 @@ export function createSelectionController({
     deleteSelected,
     recolor,
     clear,
+    copy,
+    paste,
     isDragging: () => !!drag,
     destroy() {
       canvas.removeEventListener('mousedown', onDown);
+      canvas.removeEventListener('mousemove', onHover);
       w.removeEventListener('mousemove', onMove);
       w.removeEventListener('mouseup', onUp);
       w.removeEventListener('keydown', onKey);

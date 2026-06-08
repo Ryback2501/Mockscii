@@ -95,4 +95,38 @@ describe('select mode controller', () => {
     expect(changed).toBe(true);
     expect(cells.get(2, 1)).toMatchObject({ ch: 'A', bg: '#222222' });
   });
+
+  const hoverAt = (px, py) =>
+    canvas.dispatchEvent(
+      new window.MouseEvent('mousemove', { clientX: px, clientY: py, bubbles: true }),
+    );
+
+  it('copies the selection and pastes it at the hovered cell, selecting the result', () => {
+    cells.set(1, 1, { ch: 'A', fg: null, bg: null });
+    cells.set(2, 1, { ch: 'B', fg: null, bg: null });
+    selection.keys = new Set(['1,1', '2,1']);
+
+    expect(controller.copy()).toBe(true);
+    hoverAt(55, 81); // cell (5,5)
+    expect(controller.paste()).toBe(true);
+
+    expect(cells.get(5, 5)).toMatchObject({ ch: 'A' });
+    expect(cells.get(6, 5)).toMatchObject({ ch: 'B' });
+    expect([...selection.keys].sort()).toEqual(['5,5', '6,5']);
+  });
+
+  it('pastes at the selection top-left when there is no hover', () => {
+    cells.set(3, 3, { ch: 'X', fg: null, bg: null });
+    selection.keys = new Set(['3,3']);
+    controller.copy();
+    selection.keys = new Set(['7,7']); // move the selection elsewhere
+    expect(controller.paste()).toBe(true);
+    expect(cells.get(7, 7)).toMatchObject({ ch: 'X' });
+  });
+
+  it('does not copy when no painted cells are selected', () => {
+    selection.keys = new Set(['1,1']); // empty cell
+    expect(controller.copy()).toBe(false);
+    expect(controller.paste()).toBe(false); // nothing on the clipboard
+  });
 });
