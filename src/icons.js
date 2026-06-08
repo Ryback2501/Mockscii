@@ -16,6 +16,8 @@ export const ICONS = {
       '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>' +
       '<path d="M10 11v6"/><path d="M14 11v6"/>',
   ),
+  undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-1"/>'),
+  redo: svg('<path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h1"/>'),
 };
 
 /** Create a `<button>` whose content is an inline-SVG icon, with an a11y label. */

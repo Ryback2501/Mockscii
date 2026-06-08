@@ -97,4 +97,19 @@ describe('draw mode', () => {
     mouse('mousedown', 25, 25);
     expect(cells.has(2, 1)).toBe(true);
   });
+
+  it('commits one history checkpoint per painting stroke, none for an empty stroke', () => {
+    const history = { commit: vi.fn() };
+    createDrawController({ canvas, grid, cells, tools, window, history });
+
+    mouse('mousedown', 25, 25);
+    mouse('mousemove', 45, 25);
+    mouse('mouseup', 45, 25);
+    expect(history.commit).toHaveBeenCalledTimes(1);
+
+    tools.glyph = ''; // nothing painted -> no checkpoint
+    mouse('mousedown', 65, 65);
+    mouse('mouseup', 65, 65);
+    expect(history.commit).toHaveBeenCalledTimes(1);
+  });
 });

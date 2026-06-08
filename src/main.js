@@ -7,6 +7,7 @@ import { createDrawController } from './draw.js';
 import { createSelectionController } from './selection.js';
 import { createToolbar } from './toolbar.js';
 import { createPalette } from './palette.js';
+import { createHistory } from './history.js';
 import { createFontSelector } from './font-selector.js';
 import { createIoControls } from './io-controls.js';
 import { serialize, deserialize, applyToCells, downloadJSON } from './io.js';
@@ -30,6 +31,13 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
 
   // Resolves a palette colour id to a hex string (palette is created below).
   const colorOf = (id) => palette?.colorOf(id);
+
+  // Undo/redo over the cell store. onChange re-renders and refreshes the toolbar
+  // buttons; grid/toolbar are assigned below but only used when it actually fires.
+  const history = createHistory(cells, () => {
+    grid?.render();
+    toolbar?.refresh();
+  });
 
   // Apply the active font globally (canvas grid + glyph previews via CSS var).
   doc.documentElement.style.setProperty('--mock-font', tools.font);
@@ -57,7 +65,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
       win.addEventListener('resize', () => grid.resize());
     }
 
-    draw = createDrawController({ canvas, grid, cells, tools, window: win });
+    draw = createDrawController({ canvas, grid, cells, tools, window: win, history });
     select = createSelectionController({
       canvas,
       grid,
@@ -66,6 +74,23 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
       tools,
       window: win,
       onChange: () => grid.render(),
+      history,
+    });
+
+    // Undo / redo keyboard shortcuts (ignored while typing in a form control).
+    win.addEventListener?.('keydown', (ev) => {
+      const t = ev.target;
+      const tag = t && t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
+      if (!(ev.ctrlKey || ev.metaKey)) return;
+      const k = ev.key.toLowerCase();
+      if (k === 'z' && !ev.shiftKey) {
+        ev.preventDefault();
+        history.undo();
+      } else if (k === 'y' || (k === 'z' && ev.shiftKey)) {
+        ev.preventDefault();
+        history.redo();
+      }
     });
   }
 
@@ -104,6 +129,9 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     toolbar = createToolbar(toolbarEl, {
       tools,
       colorOf,
+      history,
+      onUndo: () => history.undo(),
+      onRedo: () => history.redo(),
       // Switching channel re-highlights that channel's selected swatch.
       onChannelChange: () => palette?.refresh(),
       // Switching mode clears any cell selection.
@@ -153,6 +181,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
           return; // ignore invalid files
         }
         applyToCells(cells, parsed.cells);
+        history.commit(); // loading a file is one undo step
         if (parsed.palette) palette?.setPalette(parsed.palette);
         if (parsed.font) {
           applyFont(parsed.font);
@@ -172,6 +201,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     palette,
     fontSelector,
     io,
+    history,
     cells,
     selection,
     tools,

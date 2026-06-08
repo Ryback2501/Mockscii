@@ -2,10 +2,11 @@
 // sparse cell store, redrawing as it goes. Cells store the fg/bg as palette
 // colour *ids* (or null), resolved to colours at render time.
 
-export function createDrawController({ canvas, grid, cells, tools, window: win }) {
+export function createDrawController({ canvas, grid, cells, tools, window: win, history }) {
   const w = win ?? (typeof window !== 'undefined' ? window : globalThis);
   const metrics = grid.grid; // live { cols, rows, cell }
   let painting = false;
+  let dirty = false; // whether the current stroke changed anything
 
   function cellAt(ev) {
     const rect = canvas.getBoundingClientRect();
@@ -21,6 +22,7 @@ export function createDrawController({ canvas, grid, cells, tools, window: win }
     const ch = tools.glyph;
     if (ch == null || ch === '') return;
     cells.set(col, row, { ch, fg: tools.fg ?? null, bg: tools.bg ?? null });
+    dirty = true;
     grid.render();
   }
 
@@ -33,13 +35,16 @@ export function createDrawController({ canvas, grid, cells, tools, window: win }
     if (ev.button !== 0) return;
     if (tools.mode && tools.mode !== 'draw') return; // only paint in draw mode
     painting = true;
+    dirty = false;
     paint(ev);
   }
   function onMove(ev) {
     if (painting) paint(ev);
   }
   function onUp() {
+    if (painting && dirty) history?.commit(); // one undo step per stroke
     painting = false;
+    dirty = false;
   }
 
   canvas.addEventListener('mousedown', onDown);

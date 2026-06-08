@@ -118,6 +118,26 @@ test('the + button opens the colour picker modal', async ({ page }) => {
   await expect(page.getByTestId('color-picker')).toHaveCount(0);
 });
 
+test('undo and redo a painted cell via keyboard', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+
+  await page.keyboard.press('Control+z');
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
+
+  await page.keyboard.press('Control+y');
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+});
+
 test('export then import restores the painted cells', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page

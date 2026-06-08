@@ -30,6 +30,7 @@ export function createSelectionController({
   tools,
   window: win,
   onChange,
+  history,
 }) {
   const w = win ?? (typeof window !== 'undefined' ? window : globalThis);
   const fire = onChange ?? (() => grid?.render?.());
@@ -88,8 +89,10 @@ export function createSelectionController({
       else next.add(key);
       selection.keys = next;
     } else if (drag.type === 'move' && selection.offset) {
-      moveBy(selection.offset.x, selection.offset.y);
+      const { x: dx, y: dy } = selection.offset;
+      moveBy(dx, dy);
       selection.offset = null;
+      if (dx || dy) history?.commit(); // moving the selection is one undo step
     }
     drag = null;
     fire();
@@ -115,10 +118,12 @@ export function createSelectionController({
   }
 
   function deleteSelected() {
+    let changed = false;
     selection.keys.forEach((key) => {
       const [x, y] = parseKey(key);
-      cells.delete(x, y);
+      if (cells.delete(x, y)) changed = true;
     });
+    if (changed) history?.commit();
     fire();
   }
 
@@ -133,7 +138,10 @@ export function createSelectionController({
         changed = true;
       }
     });
-    if (changed) fire();
+    if (changed) {
+      history?.commit();
+      fire();
+    }
     return changed;
   }
 
