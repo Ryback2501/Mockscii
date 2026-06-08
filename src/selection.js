@@ -1,4 +1,4 @@
-// Select mode: when tools.mode === 'select', the pointer selects grid cells
+// Select mode: when tools.tool === 'select', the pointer selects grid cells
 // (empty or filled) by click, Ctrl/Cmd+click (toggle), or rubber-band drag.
 // A drag that starts on an already-selected cell moves the selection. The
 // selection can be recoloured (via the palette), deleted, or moved as a group.
@@ -46,7 +46,7 @@ export function createSelectionController({
   }
 
   function onDown(ev) {
-    if (ev.button !== 0 || tools.mode !== 'select') return;
+    if (ev.button !== 0 || tools.tool !== 'select') return;
     const pos = cellAt(ev);
     if (!pos) return;
     const key = cellKey(pos.x, pos.y);
@@ -152,7 +152,7 @@ export function createSelectionController({
   }
 
   function onKey(ev) {
-    if (tools.mode !== 'select' || !selection.keys.size) return;
+    if (tools.tool !== 'select' || !selection.keys.size) return;
     if (ev.key === 'Delete' || ev.key === 'Backspace') {
       ev.preventDefault();
       deleteSelected();

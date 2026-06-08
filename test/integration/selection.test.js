@@ -18,7 +18,7 @@ describe('select mode controller', () => {
     canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 800, height: 640 });
     cells = createCellStore();
     selection = { keys: new Set(), offset: null };
-    tools = { mode: 'select', fg: '#fff', bg: null, activeChannel: 'fg' };
+    tools = { tool: 'select', fg: '#fff', bg: null, activeChannel: 'fg' };
     grid = makeGrid();
     controller = createSelectionController({ canvas, grid, cells, selection, tools, window });
   });
@@ -61,7 +61,7 @@ describe('select mode controller', () => {
   });
 
   it('does nothing in draw mode', () => {
-    tools.mode = 'draw';
+    tools.tool = 'draw';
     mouse('mousedown', 25, 25);
     mouse('mouseup', 25, 25);
     expect(selection.keys.size).toBe(0);

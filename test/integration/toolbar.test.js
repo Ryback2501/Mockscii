@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createToolbar } from '../../src/toolbar.js';
 
 function makeTools() {
-  return { glyph: '#', fg: null, bg: null, mode: 'draw', activeChannel: 'fg' };
+  return { glyph: '#', fg: null, bg: null, tool: 'draw', activeChannel: 'fg' };
 }
 
 // Stand-in palette resolver: id 1 -> red, id 2 -> green.
@@ -17,15 +17,23 @@ describe('toolbar', () => {
     tools = makeTools();
   });
 
-  it('renders the select, fg, bg, undo/redo and clear buttons', () => {
+  it('renders the tool group, colour, undo/redo and clear buttons', () => {
     const tb = createToolbar(container, { tools });
-    // select, fg, bg, undo, redo, clear
-    expect(container.querySelectorAll('button.tool')).toHaveLength(6);
+    // draw, erase, fill, select, fg, bg, undo, redo, clear
+    expect(container.querySelectorAll('button.tool')).toHaveLength(9);
     expect(tb.selectButton.textContent).toBe('↑');
     expect(tb.fgButton.textContent).toBe('A');
-    expect(container.querySelector('.tool-undo')).toBeTruthy();
-    expect(container.querySelector('.tool-redo')).toBeTruthy();
-    expect(container.querySelector('.tool-clear')).toBeTruthy();
+    for (const cls of [
+      '.tool-draw',
+      '.tool-erase',
+      '.tool-fill',
+      '.tool-select',
+      '.tool-undo',
+      '.tool-redo',
+      '.tool-clear',
+    ]) {
+      expect(container.querySelector(cls)).toBeTruthy();
+    }
   });
 
   it('fires onClear when the clear button is clicked', () => {
@@ -46,23 +54,27 @@ describe('toolbar', () => {
     expect(tb.undoButton.disabled).toBe(false);
   });
 
-  it('starts in draw mode with the fg channel active', () => {
+  it('starts with the draw tool and the fg channel active', () => {
     const tb = createToolbar(container, { tools });
+    expect(tb.drawButton.classList.contains('active')).toBe(true);
     expect(tb.selectButton.classList.contains('active')).toBe(false);
     expect(tb.fgButton.classList.contains('channel-active')).toBe(true);
     expect(tb.bgButton.classList.contains('channel-active')).toBe(false);
     expect(tb.bgButton.textContent).toBe('□'); // no background set yet
   });
 
-  it('toggles select mode and notifies', () => {
-    const modes = [];
-    const tb = createToolbar(container, { tools, onModeChange: (m) => modes.push(m) });
+  it('selects a tool (radio) and notifies', () => {
+    const picked = [];
+    const tb = createToolbar(container, { tools, onToolChange: (t) => picked.push(t) });
     tb.selectButton.click();
-    expect(tools.mode).toBe('select');
+    expect(tools.tool).toBe('select');
     expect(tb.selectButton.classList.contains('active')).toBe(true);
-    tb.selectButton.click();
-    expect(tools.mode).toBe('draw');
-    expect(modes).toEqual(['select', 'draw']);
+    expect(tb.drawButton.classList.contains('active')).toBe(false);
+    tb.fillButton.click();
+    expect(tools.tool).toBe('fill');
+    expect(tb.fillButton.classList.contains('active')).toBe(true);
+    expect(tb.selectButton.classList.contains('active')).toBe(false);
+    expect(picked).toEqual(['select', 'fill']);
   });
 
   it('switches the active colour channel and notifies', () => {

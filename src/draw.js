@@ -1,12 +1,16 @@
-// Draw mode: click and drag on the canvas to paint the active glyph into the
-// sparse cell store, redrawing as it goes. Cells store the fg/bg as palette
-// colour *ids* (or null), resolved to colours at render time.
+// Pointer paint controller. Handles the click/drag painting tools selected via
+// `tools.tool`: draw (paint the active glyph), erase (delete cells), and fill
+// (flood-fill the contiguous region under the click). Each gesture commits one
+// undo checkpoint. Select / text are handled by their own controllers.
+import { floodFill } from './fill.js';
+
+const PAINT_TOOLS = new Set(['draw', 'erase', 'fill']);
 
 export function createDrawController({ canvas, grid, cells, tools, window: win, history }) {
   const w = win ?? (typeof window !== 'undefined' ? window : globalThis);
   const metrics = grid.grid; // live { cols, rows, cell }
   let painting = false;
-  let dirty = false; // whether the current stroke changed anything
+  let dirty = false; // whether the current gesture changed anything
 
   function cellAt(ev) {
     const rect = canvas.getBoundingClientRect();
@@ -18,29 +22,47 @@ export function createDrawController({ canvas, grid, cells, tools, window: win, 
     return { col, row };
   }
 
-  function paintCell(col, row) {
-    const ch = tools.glyph;
-    if (ch == null || ch === '') return;
-    cells.set(col, row, { ch, fg: tools.fg ?? null, bg: tools.bg ?? null });
-    dirty = true;
+  // Apply the active tool at one cell. Returns nothing; sets `dirty` + renders.
+  function applyCell(col, row) {
+    const tool = tools.tool ?? 'draw';
+    if (tool === 'erase') {
+      if (cells.delete(col, row)) dirty = true;
+    } else if (tool === 'fill') {
+      const ch = tools.glyph;
+      if (ch == null || ch === '') return;
+      const paint = { ch, fg: tools.fg ?? null, bg: tools.bg ?? null };
+      if (floodFill(cells, col, row, metrics.cols, metrics.rows, paint)) dirty = true;
+    } else {
+      const ch = tools.glyph;
+      if (ch == null || ch === '') return;
+      cells.set(col, row, { ch, fg: tools.fg ?? null, bg: tools.bg ?? null });
+      dirty = true;
+    }
     grid.render();
-  }
-
-  function paint(ev) {
-    const pos = cellAt(ev);
-    if (pos) paintCell(pos.col, pos.row);
   }
 
   function onDown(ev) {
     if (ev.button !== 0) return;
-    if (tools.mode && tools.mode !== 'draw') return; // only paint in draw mode
-    painting = true;
+    if (!PAINT_TOOLS.has(tools.tool ?? 'draw')) return; // not a paint tool
+    const pos = cellAt(ev);
+    if (!pos) return;
     dirty = false;
-    paint(ev);
+
+    if (tools.tool === 'fill') {
+      applyCell(pos.col, pos.row); // single-shot flood, no drag
+      if (dirty) history?.commit();
+      return;
+    }
+    painting = true;
+    applyCell(pos.col, pos.row);
   }
+
   function onMove(ev) {
-    if (painting) paint(ev);
+    if (!painting) return;
+    const pos = cellAt(ev);
+    if (pos) applyCell(pos.col, pos.row);
   }
+
   function onUp() {
     if (painting && dirty) history?.commit(); // one undo step per stroke
     painting = false;
@@ -52,7 +74,12 @@ export function createDrawController({ canvas, grid, cells, tools, window: win, 
   w.addEventListener('mouseup', onUp);
 
   return {
-    paintCell, // programmatic painting (col, row)
+    // Programmatic painting with the active tool (col, row).
+    paintCell: (col, row) => {
+      dirty = false;
+      applyCell(col, row);
+      if (dirty) history?.commit();
+    },
     isPainting: () => painting,
     destroy() {
       canvas.removeEventListener('mousedown', onDown);
