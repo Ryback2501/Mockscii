@@ -4,7 +4,9 @@ import {
   getAvailableFonts,
   DEFAULT_FONT,
   WEB_FONT_FAMILIES,
+  fontSizeFor,
 } from '../../src/fonts.js';
+import { DEFAULT_FONT_SIZE } from '../../src/state.js';
 
 describe('font catalog', () => {
   it('has generic, web and system entries with a family and monospace fallback', () => {
@@ -21,6 +23,26 @@ describe('font catalog', () => {
     expect(WEB_FONT_FAMILIES.length).toBeGreaterThanOrEqual(5);
     expect(WEB_FONT_FAMILIES).toContain('JetBrains Mono');
     expect(DEFAULT_FONT).toBe('monospace');
+  });
+
+  it('gives every font a positive default size', () => {
+    for (const f of FONT_CATALOG) {
+      expect(typeof f.size).toBe('number');
+      expect(f.size).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('fontSizeFor', () => {
+  it('returns the catalog size for a known font value', () => {
+    expect(fontSizeFor('monospace')).toBe(16);
+    const fira = FONT_CATALOG.find((f) => f.family === 'Fira Code');
+    expect(fontSizeFor("'Fira Code', monospace")).toBe(fira.size);
+  });
+
+  it('falls back to the global default for an unknown value', () => {
+    expect(fontSizeFor('Nonexistent, monospace')).toBe(DEFAULT_FONT_SIZE);
+    expect(fontSizeFor('Nonexistent, monospace', 11)).toBe(11);
   });
 });
 
