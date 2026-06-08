@@ -55,13 +55,15 @@ describe('grid render', () => {
     expect(grid.grid.cell).toEqual({ width: 10, height: 18 });
   });
 
-  it('fills the whole cell background and scales the glyph to fill the cell', () => {
+  it('fills the cell background and draws the glyph at natural size on the baseline', () => {
     cells.set(2, 1, { ch: 'A', fg: 1, bg: 2 });
     grid.resize();
 
     const { width: W, height: H } = grid.grid.cell;
+    // Background fills the whole cell.
     expect(ctx.fillRect).toHaveBeenCalledWith(2 * W, 1 * H, W, H);
-    expect(ctx.scale).toHaveBeenCalled();
+    // The glyph is printed at natural size (no scaling transform) on the baseline.
+    expect(ctx.scale).not.toHaveBeenCalled();
     expect(ctx.fillText).toHaveBeenCalledWith('A', expect.any(Number), expect.any(Number));
   });
 

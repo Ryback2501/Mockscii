@@ -2,10 +2,12 @@
 // the available pixel area divided by the cell size, and redraws crisply on
 // resize.
 //
-// To make block/box glyphs tile seamlessly on ANY font, we measure the FULL
-// BLOCK glyph (█) per font and scale every glyph so █ exactly fills the cell;
-// other glyphs ride the same transform (so they keep their relative size and
-// share a baseline). A faint grid is drawn behind the cells.
+// Glyphs are printed the way a terminal does: each one is drawn at its NATURAL
+// font size, left-aligned to the cell and sitting on the baseline (cell width =
+// the monospace advance, cell height = the font's line box). The only exception
+// is the Block Elements (█ ▀ ▄ …), which are drawn as exact rectangles so they
+// fill the cell perfectly on any font — just like a quality terminal. A faint
+// grid is drawn behind the cells.
 import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE, cellDimensions, gridDimensions } from './state.js';
 import { blockSpec } from './blocks.js';
 
@@ -31,11 +33,9 @@ export function createGrid(canvas, options = {}) {
     fontSize,
   };
 
-  // Transform that maps a glyph's draw origin so the FULL BLOCK fills the cell.
-  let glyphOriginX = 0; // x to draw at (left edge of █ ink), in font units
-  let glyphBaselineY = fontSize * 0.8; // baseline y (top of █ ink to baseline)
-  let glyphScaleW = fontSize * 0.6; // █ ink width  -> scales to cell width
-  let glyphScaleH = fontSize; // █ ink height -> scales to cell height
+  // Baseline offset (top of cell to the text baseline), in CSS pixels — glyphs
+  // are drawn here at natural size, the way a terminal prints them.
+  let baselineY = fontSize * 0.8;
 
   const dpr = () => win.devicePixelRatio || 1;
 
@@ -43,10 +43,6 @@ export function createGrid(canvas, options = {}) {
     let advance = fontSize * 0.6;
     let fAscent = fontSize * 0.8;
     let fDescent = fontSize * 0.2;
-    let bLeft = 0;
-    let bRight = advance;
-    let bAscent = fAscent;
-    let bDescent = fDescent;
 
     if (ctx) {
       ctx.font = `${fontSize}px ${fontFamily}`;
@@ -54,26 +50,12 @@ export function createGrid(canvas, options = {}) {
       if (mM.width) advance = mM.width;
       if (typeof mM.fontBoundingBoxAscent === 'number') fAscent = mM.fontBoundingBoxAscent;
       if (typeof mM.fontBoundingBoxDescent === 'number') fDescent = mM.fontBoundingBoxDescent;
-
-      const mB = ctx.measureText('█');
-      if (typeof mB.actualBoundingBoxLeft === 'number') bLeft = mB.actualBoundingBoxLeft;
-      bRight =
-        typeof mB.actualBoundingBoxRight === 'number'
-          ? mB.actualBoundingBoxRight
-          : mB.width || advance;
-      bAscent =
-        typeof mB.actualBoundingBoxAscent === 'number' ? mB.actualBoundingBoxAscent : fAscent;
-      bDescent =
-        typeof mB.actualBoundingBoxDescent === 'number' ? mB.actualBoundingBoxDescent : fDescent;
     }
 
-    glyphOriginX = bLeft;
-    glyphBaselineY = bAscent;
-    glyphScaleW = bLeft + bRight || advance;
-    glyphScaleH = bAscent + bDescent || fAscent + fDescent;
+    baselineY = fAscent;
 
-    // Cell width tracks the monospace advance; height tracks the block ink box.
-    grid.cell = cellDimensions(advance, bAscent + bDescent);
+    // Cell width tracks the monospace advance; height is the font's line box.
+    grid.cell = cellDimensions(advance, fAscent + fDescent);
   }
 
   function render() {
@@ -106,9 +88,6 @@ export function createGrid(canvas, options = {}) {
     }
     ctx.stroke();
 
-    const sx = W / glyphScaleW;
-    const sy = H / glyphScaleH;
-
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.font = `${fontSize}px ${fontFamily}`;
@@ -134,12 +113,9 @@ export function createGrid(canvas, options = {}) {
           }
           ctx.restore();
         } else {
-          // Other glyphs: scale onto the cell (sharing the █-derived transform).
-          ctx.save();
-          ctx.translate(px, py);
-          ctx.scale(sx, sy);
-          ctx.fillText(cell.ch, glyphOriginX, glyphBaselineY);
-          ctx.restore();
+          // Every other glyph prints at its natural size on the baseline, just
+          // like a terminal — left-aligned to the cell, no scaling.
+          ctx.fillText(cell.ch, px, py + baselineY);
         }
       }
     });
