@@ -12,6 +12,7 @@
 // already-selected swatch deselects it (id -> null -> default). Double-click
 // edits a swatch; + adds a colour; − removes the selected one.
 import { openColorPicker } from './color-picker.js';
+import { ICONS, iconButton } from './icons.js';
 
 export const DEFAULT_FG = '#d4d4d4';
 export const DEFAULT_BG = null; // no background
@@ -41,23 +42,20 @@ export function createPalette(container, options = {}) {
   // Selected colour *id* per channel, or null when nothing is selected.
   const selection = { fg: null, bg: null };
 
-  function controlButton(label, cls, title) {
-    const b = doc.createElement('button');
-    b.type = 'button';
-    b.className = `palette-btn ${cls}`;
-    b.textContent = label;
-    b.title = title;
-    return b;
-  }
-
   const swatches = doc.createElement('div');
   swatches.className = 'palette-swatches';
 
   const controls = doc.createElement('div');
   controls.className = 'palette-controls';
-  const addBtn = controlButton('+', 'palette-add', 'Add colour');
-  const removeBtn = controlButton('−', 'palette-remove', 'Remove selected colour');
-  controls.append(addBtn, removeBtn);
+  const addBtn = iconButton(doc, 'palette-btn palette-add', ICONS.plus, 'Add colour');
+  const editBtn = iconButton(doc, 'palette-btn palette-edit', ICONS.pencil, 'Edit selected colour');
+  const removeBtn = iconButton(
+    doc,
+    'palette-btn palette-remove',
+    ICONS.trash,
+    'Remove selected colour',
+  );
+  controls.append(addBtn, editBtn, removeBtn);
 
   const activeChannel = () => (tools.activeChannel === 'bg' ? 'bg' : 'fg');
   const entryById = (id) => (id == null ? undefined : entries.find((e) => e.id === id));
@@ -83,6 +81,15 @@ export function createPalette(container, options = {}) {
       sw.addEventListener('dblclick', () => editSwatch(entry.id));
       swatches.appendChild(sw);
     });
+    // Edit and remove act on the active channel's selected swatch.
+    const hasSelection = sel != null;
+    editBtn.disabled = !hasSelection;
+    removeBtn.disabled = !hasSelection;
+  }
+
+  // Edit the active channel's currently selected colour (used by the pencil button).
+  function editSelected() {
+    return editSwatch(selection[activeChannel()]);
   }
 
   function toggleSwatch(id) {
@@ -168,6 +175,7 @@ export function createPalette(container, options = {}) {
   }
 
   addBtn.addEventListener('click', addColor);
+  editBtn.addEventListener('click', editSelected);
   removeBtn.addEventListener('click', removeColor);
 
   // Reflect the (initially empty) channel selections into tools, then render.
@@ -187,6 +195,7 @@ export function createPalette(container, options = {}) {
     getSelected: () => selection[activeChannel()],
     getSelectedColor: () => colorFor(activeChannel()),
     add: addColor,
+    edit: editSelected,
     remove: removeColor,
     selectIndex,
   };
