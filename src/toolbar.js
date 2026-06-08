@@ -10,6 +10,8 @@ const TOOL_DEFS = [
   { tool: 'draw', icon: ICONS.pencil, title: 'Draw' },
   { tool: 'erase', icon: ICONS.eraser, title: 'Erase' },
   { tool: 'fill', icon: ICONS.bucket, title: 'Fill' },
+  { tool: 'line', icon: ICONS.line, title: 'Line' },
+  { tool: 'rect', icon: ICONS.rect, title: 'Rectangle' },
   { tool: 'select', label: '↑', title: 'Select' },
 ];
 
@@ -119,6 +121,8 @@ export function createToolbar(container, options = {}) {
     drawButton: byTool('draw'),
     eraseButton: byTool('erase'),
     fillButton: byTool('fill'),
+    lineButton: byTool('line'),
+    rectButton: byTool('rect'),
     fgButton: fgBtn,
     bgButton: bgBtn,
     undoButton: undoBtn,

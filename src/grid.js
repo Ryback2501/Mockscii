@@ -37,6 +37,9 @@ export function createGrid(canvas, options = {}) {
   // are drawn here at natural size, the way a terminal prints them.
   let baselineY = fontSize * 0.8;
 
+  // Transient overlay of cells previewed by a tool mid-drag (line/rect).
+  let preview = null;
+
   const dpr = () => win.devicePixelRatio || 1;
 
   function measureCell() {
@@ -92,7 +95,7 @@ export function createGrid(canvas, options = {}) {
     ctx.textBaseline = 'alphabetic';
     ctx.font = `${fontSize}px ${fontFamily}`;
 
-    cells.forEach((x, y, cell) => {
+    const drawCell = (x, y, cell) => {
       const px = x * W;
       const py = y * H;
       const bgColor = colorOf(cell.bg);
@@ -118,7 +121,17 @@ export function createGrid(canvas, options = {}) {
           ctx.fillText(cell.ch, px, py + baselineY);
         }
       }
-    });
+    };
+
+    cells.forEach(drawCell);
+
+    // Live tool preview (line/rect drag), drawn above cells at reduced opacity.
+    if (preview && preview.length) {
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      for (const p of preview) drawCell(p.x, p.y, p.cell);
+      ctx.restore();
+    }
 
     // Selection highlight, drawn on top (shifted live while a move drag is active).
     if (selection.keys && selection.keys.size) {
@@ -168,6 +181,12 @@ export function createGrid(canvas, options = {}) {
     return resize(); // re-measure the cell, re-fit cols/rows, redraw
   }
 
+  // Set (or clear) the transient tool preview overlay and redraw.
+  function setPreview(list) {
+    preview = list && list.length ? list : null;
+    render();
+  }
+
   // Set just the render size (ready for a future size picker).
   function setFontSize(size) {
     if (typeof size === 'number' && size > 0) {
@@ -177,5 +196,5 @@ export function createGrid(canvas, options = {}) {
     return resize();
   }
 
-  return { grid, resize, render, measureCell, setFontFamily, setFontSize };
+  return { grid, resize, render, measureCell, setFontFamily, setFontSize, setPreview };
 }

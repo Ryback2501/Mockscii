@@ -138,6 +138,35 @@ test('undo and redo a painted cell via keyboard', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
 });
 
+test('rectangle tool stamps a hollow box', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+  await page.getByTestId('toolbar').locator('.tool-rect').click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  const cell = await page.evaluate(() => window.__mockscii.grid.grid.cell);
+  const at = (c, r) => ({ x: box.x + (c + 0.5) * cell.width, y: box.y + (r + 0.5) * cell.height });
+
+  const a = at(3, 3);
+  const b = at(7, 6);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(b.x, b.y);
+  await page.mouse.up();
+
+  const res = await page.evaluate(() => ({
+    size: window.__mockscii.cells.size,
+    center: window.__mockscii.cells.has(5, 4),
+  }));
+  expect(res.size).toBe(2 * (5 + 4) - 4); // perimeter of a 5x4 box = 14
+  expect(res.center).toBe(false); // hollow
+});
+
 test('eraser tool removes a painted cell', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page
