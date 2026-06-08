@@ -171,4 +171,44 @@ describe('palette control', () => {
     await flush();
     expect(p.colorOf(id)).toBe('#0a0b0c');
   });
+
+  it('renders add, edit and remove as icon buttons in order', () => {
+    createPalette(container, { tools, colors: ['#111111'] });
+    const btns = [...container.querySelectorAll('.palette-controls .palette-btn')];
+    const kind = (b) =>
+      b.classList.contains('palette-add')
+        ? 'add'
+        : b.classList.contains('palette-edit')
+          ? 'edit'
+          : 'remove';
+    expect(btns.map(kind)).toEqual(['add', 'edit', 'remove']);
+    for (const b of btns) {
+      expect(b.querySelector('svg')).toBeTruthy();
+      expect(b.getAttribute('aria-label')).toBeTruthy();
+    }
+  });
+
+  it('disables edit and remove until a colour is selected', () => {
+    const p = createPalette(container, { tools, colors: ['#111111', '#222222'] });
+    const edit = container.querySelector('.palette-edit');
+    const remove = container.querySelector('.palette-remove');
+    expect(edit.disabled).toBe(true);
+    expect(remove.disabled).toBe(true);
+    p.selectIndex(0);
+    expect(edit.disabled).toBe(false);
+    expect(remove.disabled).toBe(false);
+  });
+
+  it('edits the selected colour via the pencil button', async () => {
+    const p = createPalette(container, {
+      tools,
+      colors: ['#111111', '#222222'],
+      openColorPicker: async () => '#0d0e0f',
+    });
+    p.selectIndex(1);
+    const id = p.getSelected();
+    container.querySelector('.palette-edit').click();
+    await flush();
+    expect(p.colorOf(id)).toBe('#0d0e0f');
+  });
 });

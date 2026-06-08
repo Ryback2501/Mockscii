@@ -178,6 +178,9 @@ body {
 }
 
 .palette-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
   line-height: 1;
@@ -188,8 +191,18 @@ body {
   cursor: pointer;
 }
 
-.palette-btn:hover {
+.palette-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.palette-btn:hover:not(:disabled) {
   background: #3a3a3a;
+}
+
+.palette-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /* Export / Import ----------------------------------------------------- */
