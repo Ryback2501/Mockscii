@@ -83,6 +83,17 @@ describe('grid render', () => {
     expect(ctx.strokeRect).toHaveBeenCalled();
   });
 
+  it('changes the render size via setFontFamily(family, size) and setFontSize', () => {
+    grid.resize();
+    grid.setFontFamily('monospace', 22);
+    expect(grid.grid.fontSize).toBe(22);
+    grid.setFontSize(10);
+    expect(grid.grid.fontSize).toBe(10);
+    // A non-positive size is ignored.
+    grid.setFontSize(0);
+    expect(grid.grid.fontSize).toBe(10);
+  });
+
   it('draws the grid lines behind the characters', () => {
     cells.set(0, 0, { ch: '#', fg: 1, bg: null });
     grid.resize();

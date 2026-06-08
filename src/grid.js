@@ -18,7 +18,7 @@ const DEFAULT_FG = '#d4d4d4';
 export function createGrid(canvas, options = {}) {
   const win = options.window ?? (typeof window !== 'undefined' ? window : globalThis);
   let fontFamily = options.fontFamily ?? DEFAULT_FONT_FAMILY;
-  const fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
+  let fontSize = options.fontSize ?? DEFAULT_FONT_SIZE;
   const cells = options.cells ?? { forEach() {} };
   const selection = options.selection ?? { keys: new Set(), offset: null };
   // Resolves a palette colour id to a hex string; dangling/null -> default.
@@ -157,11 +157,25 @@ export function createGrid(canvas, options = {}) {
     return grid;
   }
 
-  function setFontFamily(family) {
+  // Change the font family and, optionally, its render size in one step.
+  function setFontFamily(family, size) {
     fontFamily = family || DEFAULT_FONT_FAMILY;
     grid.fontFamily = fontFamily;
+    if (typeof size === 'number' && size > 0) {
+      fontSize = size;
+      grid.fontSize = fontSize;
+    }
     return resize(); // re-measure the cell, re-fit cols/rows, redraw
   }
 
-  return { grid, resize, render, measureCell, setFontFamily };
+  // Set just the render size (ready for a future size picker).
+  function setFontSize(size) {
+    if (typeof size === 'number' && size > 0) {
+      fontSize = size;
+      grid.fontSize = fontSize;
+    }
+    return resize();
+  }
+
+  return { grid, resize, render, measureCell, setFontFamily, setFontSize };
 }

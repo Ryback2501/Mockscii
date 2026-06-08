@@ -11,7 +11,7 @@ import { createFontSelector } from './font-selector.js';
 import { createIoControls } from './io-controls.js';
 import { serialize, deserialize, applyToCells, downloadJSON } from './io.js';
 import { DEFAULT_GLYPH } from './glyphs.js';
-import { DEFAULT_FONT, getAvailableFonts } from './fonts.js';
+import { DEFAULT_FONT, getAvailableFonts, fontSizeFor } from './fonts.js';
 
 export function init(doc = document, win = typeof window !== 'undefined' ? window : globalThis) {
   const canvas = doc.getElementById('grid');
@@ -39,7 +39,14 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   let select = null;
 
   if (canvas) {
-    grid = createGrid(canvas, { window: win, cells, selection, fontFamily: tools.font, colorOf });
+    grid = createGrid(canvas, {
+      window: win,
+      cells,
+      selection,
+      fontFamily: tools.font,
+      fontSize: fontSizeFor(tools.font),
+      colorOf,
+    });
     grid.resize();
 
     // Re-fit whenever the grid area changes size.
@@ -71,7 +78,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     tools.font = value;
     doc.documentElement.style.setProperty('--mock-font', value);
     const family = fontByValue.get(value)?.family;
-    const apply = () => grid?.setFontFamily(value);
+    const apply = () => grid?.setFontFamily(value, fontSizeFor(value));
     if (family && doc.fonts?.load) {
       doc.fonts.load(`16px "${family}"`).then(apply, apply);
     } else {
