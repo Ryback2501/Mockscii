@@ -19,14 +19,16 @@ describe('toolbar', () => {
 
   it('renders the tool group, colour, undo/redo and clear buttons', () => {
     const tb = createToolbar(container, { tools });
-    // draw, erase, fill, select, fg, bg, undo, redo, clear
-    expect(container.querySelectorAll('button.tool')).toHaveLength(9);
+    // draw, erase, fill, line, rect, select, fg, bg, undo, redo, clear
+    expect(container.querySelectorAll('button.tool')).toHaveLength(11);
     expect(tb.selectButton.textContent).toBe('↑');
     expect(tb.fgButton.textContent).toBe('A');
     for (const cls of [
       '.tool-draw',
       '.tool-erase',
       '.tool-fill',
+      '.tool-line',
+      '.tool-rect',
       '.tool-select',
       '.tool-undo',
       '.tool-redo',

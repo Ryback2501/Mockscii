@@ -114,6 +114,29 @@ describe('draw mode', () => {
     expect(cells.size).toBeGreaterThan(1);
   });
 
+  it('previews a line during the drag and stamps it on release', () => {
+    tools.tool = 'line';
+    tools.glyph = '#';
+    mouse('mousedown', 5, 5); // col 0, row 0
+    mouse('mousemove', 45, 5); // col 4, row 0
+    expect(cells.size).toBe(0); // preview only — nothing committed yet
+    mouse('mouseup', 45, 5);
+    for (let x = 0; x <= 4; x++) expect(cells.has(x, 0)).toBe(true);
+    expect(cells.has(5, 0)).toBe(false);
+  });
+
+  it('stamps a hollow rectangle border on release', () => {
+    tools.tool = 'rect';
+    tools.glyph = '#';
+    mouse('mousedown', 5, 5); // col 0, row 0
+    mouse('mousemove', 25, 37); // col 2, row 2
+    mouse('mouseup', 25, 37);
+    expect(cells.has(0, 0)).toBe(true);
+    expect(cells.has(2, 2)).toBe(true);
+    expect(cells.has(1, 0)).toBe(true);
+    expect(cells.has(1, 1)).toBe(false); // interior stays empty
+  });
+
   it('commits one history checkpoint per painting stroke, none for an empty stroke', () => {
     const history = { commit: vi.fn() };
     createDrawController({ canvas, grid, cells, tools, window, history });
