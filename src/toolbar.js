@@ -79,7 +79,19 @@ export function createToolbar(container, options = {}) {
   });
 
   const byTool = (name) => toolButtons.find((t) => t.tool === name)?.el;
-  container.replaceChildren(...toolButtons.map((t) => t.el), undoBtn, redoBtn, clearBtn);
+  // Display order: Select, Undo, Redo, Draw, Erase, Fill, Line, Rectangle, Text, Clear.
+  container.replaceChildren(
+    byTool('select'),
+    undoBtn,
+    redoBtn,
+    byTool('draw'),
+    byTool('erase'),
+    byTool('fill'),
+    byTool('line'),
+    byTool('rect'),
+    byTool('text'),
+    clearBtn,
+  );
   refresh();
 
   return {
