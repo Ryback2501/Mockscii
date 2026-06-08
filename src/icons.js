@@ -21,6 +21,11 @@ export const ICONS = {
   clear: svg(
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/>',
   ),
+  eraser: svg('<path d="M16 3l5 5L10 19H5l-3-3z"/><path d="M9 10l5 5"/><path d="M5 19h14"/>'),
+  bucket: svg(
+    '<path d="M5 11l7-7 7 7-7 7a2 2 0 0 1-3 0l-4-4a2 2 0 0 1 0-3z"/>' +
+      '<path d="M8 8l8 8"/><path d="M20 16s2 2 2 3a2 2 0 0 1-4 0c0-1 2-3 2-3z"/>',
+  ),
 };
 
 /** Create a `<button>` whose content is an inline-SVG icon, with an a11y label. */

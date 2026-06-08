@@ -1,15 +1,22 @@
-// Toolbar above the glyph selector: a select-mode toggle (↑) plus the
-// foreground (A) and background (■) colour-channel buttons. Each colour button
-// shows its current colour and marks which channel is "active" — the channel
-// that palette picks (a later task) will assign to.
-
+// Top-bar toolbar: a tool group (draw / erase / fill / select, with more tools
+// added in later PRs) that sets the active `tools.tool`, the foreground (A) and
+// background (■) colour-channel buttons, and undo / redo / clear actions.
 import { DEFAULT_FG } from './palette.js';
 import { ICONS, iconButton } from './icons.js';
+
+// The mutually-exclusive pointer tools, in display order. `icon` ones use an
+// SVG; `label` ones use text. Each gets a `tool-<name>` class.
+const TOOL_DEFS = [
+  { tool: 'draw', icon: ICONS.pencil, title: 'Draw' },
+  { tool: 'erase', icon: ICONS.eraser, title: 'Erase' },
+  { tool: 'fill', icon: ICONS.bucket, title: 'Fill' },
+  { tool: 'select', label: '↑', title: 'Select' },
+];
 
 export function createToolbar(container, options = {}) {
   const doc = container.ownerDocument;
   const tools = options.tools;
-  const onModeChange = options.onModeChange ?? (() => {});
+  const onToolChange = options.onToolChange ?? (() => {});
   const onChannelChange = options.onChannelChange ?? (() => {});
   // tools.fg / tools.bg hold palette colour ids; resolve them for display.
   const colorOf = options.colorOf ?? (() => undefined);
@@ -28,7 +35,19 @@ export function createToolbar(container, options = {}) {
     return b;
   }
 
-  const selectBtn = button('↑', 'tool-select', 'Toggle selection mode');
+  // Pointer-tool radio group.
+  const toolButtons = TOOL_DEFS.map((def) => {
+    const el = def.icon
+      ? iconButton(doc, `tool tool-${def.tool}`, def.icon, def.title)
+      : button(def.label, `tool-${def.tool}`, def.title);
+    el.addEventListener('click', () => {
+      tools.tool = def.tool;
+      refresh();
+      onToolChange(def.tool);
+    });
+    return { tool: def.tool, el };
+  });
+
   const fgBtn = button('A', 'tool-fg', 'Foreground colour');
   const bgBtn = button('■', 'tool-bg', 'Background colour');
   const undoBtn = iconButton(doc, 'tool tool-undo', ICONS.undo, 'Undo (Ctrl+Z)');
@@ -36,9 +55,12 @@ export function createToolbar(container, options = {}) {
   const clearBtn = iconButton(doc, 'tool tool-clear', ICONS.clear, 'Clear the canvas');
 
   function refresh() {
-    const selecting = tools.mode === 'select';
-    selectBtn.classList.toggle('active', selecting);
-    selectBtn.setAttribute('aria-pressed', String(selecting));
+    const active = tools.tool ?? 'draw';
+    for (const t of toolButtons) {
+      const on = t.tool === active;
+      t.el.classList.toggle('active', on);
+      t.el.setAttribute('aria-pressed', String(on));
+    }
 
     const fgColor = colorOf(tools.fg) ?? DEFAULT_FG;
     const bgColor = colorOf(tools.bg);
@@ -55,11 +77,6 @@ export function createToolbar(container, options = {}) {
     }
   }
 
-  selectBtn.addEventListener('click', () => {
-    tools.mode = tools.mode === 'select' ? 'draw' : 'select';
-    refresh();
-    onModeChange(tools.mode);
-  });
   fgBtn.addEventListener('click', () => {
     tools.activeChannel = 'fg';
     refresh();
@@ -83,17 +100,29 @@ export function createToolbar(container, options = {}) {
     refresh();
   });
 
-  container.replaceChildren(selectBtn, fgBtn, bgBtn, undoBtn, redoBtn, clearBtn);
+  const byTool = (name) => toolButtons.find((t) => t.tool === name)?.el;
+  container.replaceChildren(
+    ...toolButtons.map((t) => t.el),
+    fgBtn,
+    bgBtn,
+    undoBtn,
+    redoBtn,
+    clearBtn,
+  );
   refresh();
 
   return {
     element: container,
     refresh,
-    selectButton: selectBtn,
+    toolButton: byTool,
+    selectButton: byTool('select'),
+    drawButton: byTool('draw'),
+    eraseButton: byTool('erase'),
+    fillButton: byTool('fill'),
+    fgButton: fgBtn,
+    bgButton: bgBtn,
     undoButton: undoBtn,
     redoButton: redoBtn,
     clearButton: clearBtn,
-    fgButton: fgBtn,
-    bgButton: bgBtn,
   };
 }

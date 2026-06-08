@@ -87,15 +87,31 @@ describe('draw mode', () => {
     expect(cells.size).toBe(0);
   });
 
-  it('does not paint while in select mode', () => {
-    tools.mode = 'select';
+  it('does not paint while a non-paint tool (select) is active', () => {
+    tools.tool = 'select';
     mouse('mousedown', 25, 25);
     mouse('mouseup', 25, 25);
     expect(cells.size).toBe(0);
 
-    tools.mode = 'draw';
+    tools.tool = 'draw';
     mouse('mousedown', 25, 25);
     expect(cells.has(2, 1)).toBe(true);
+  });
+
+  it('erases the cell under the click with the eraser tool', () => {
+    cells.set(2, 1, { ch: '#', fg: null, bg: null });
+    tools.tool = 'erase';
+    mouse('mousedown', 25, 25); // col 2, row 1
+    mouse('mouseup', 25, 25);
+    expect(cells.has(2, 1)).toBe(false);
+  });
+
+  it('flood-fills the empty region with the fill tool', () => {
+    tools.tool = 'fill';
+    tools.glyph = '*';
+    mouse('mousedown', 25, 25); // floods the whole empty grid
+    expect(cells.get(2, 1)).toMatchObject({ ch: '*' });
+    expect(cells.size).toBeGreaterThan(1);
   });
 
   it('commits one history checkpoint per painting stroke, none for an empty stroke', () => {

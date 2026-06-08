@@ -138,6 +138,24 @@ test('undo and redo a painted cell via keyboard', async ({ page }) => {
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
 });
 
+test('eraser tool removes a painted cell', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '#' })
+    .first()
+    .click();
+
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+
+  await page.getByTestId('toolbar').locator('.tool-erase').click();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
+});
+
 test('clear wipes the canvas and undo brings it back', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page

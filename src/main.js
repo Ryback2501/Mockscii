@@ -25,7 +25,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     fg: null,
     bg: null,
     font: DEFAULT_FONT,
-    mode: 'draw', // 'draw' | 'select'
+    tool: 'draw', // 'draw' | 'erase' | 'fill' | 'select' (more in later PRs)
     activeChannel: 'fg', // which colour channel palette picks assign to
   };
 
@@ -141,8 +141,10 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
       },
       // Switching channel re-highlights that channel's selected swatch.
       onChannelChange: () => palette?.refresh(),
-      // Switching mode clears any cell selection.
-      onModeChange: () => select?.clear(),
+      // Leaving select mode clears any active cell selection.
+      onToolChange: (tool) => {
+        if (tool !== 'select') select?.clear();
+      },
     });
   }
 
