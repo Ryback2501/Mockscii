@@ -324,11 +324,40 @@ body {
 }
 
 .glyph-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0.6rem 0 0.3rem;
+  padding: 0.1rem 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  text-align: left;
   opacity: 0.6;
-  margin: 0.6rem 0 0.3rem;
+  cursor: pointer;
+}
+
+.glyph-group-title:hover {
+  opacity: 0.9;
+}
+
+.glyph-group-chevron {
+  font-size: 0.6rem;
+  line-height: 1;
+  transition: transform 0.12s ease;
+}
+
+.glyph-group.collapsed .glyph-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.glyph-group.collapsed .glyph-grid {
+  display: none;
 }
 
 .glyph-grid {

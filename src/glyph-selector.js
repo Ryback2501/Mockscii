@@ -29,9 +29,23 @@ export function createGlyphSelector(container, options = {}) {
     const section = doc.createElement('div');
     section.className = 'glyph-group';
 
-    const title = doc.createElement('h3');
+    // Foldable header: click to collapse/expand the group's grid.
+    const title = doc.createElement('button');
+    title.type = 'button';
     title.className = 'glyph-group-title';
-    title.textContent = group.label;
+    title.setAttribute('aria-expanded', 'true');
+    const chevron = doc.createElement('span');
+    chevron.className = 'glyph-group-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '▾';
+    const label = doc.createElement('span');
+    label.className = 'glyph-group-label';
+    label.textContent = group.label;
+    title.append(chevron, label);
+    title.addEventListener('click', () => {
+      const collapsed = section.classList.toggle('collapsed');
+      title.setAttribute('aria-expanded', String(!collapsed));
+    });
     section.appendChild(title);
 
     const grid = doc.createElement('div');
