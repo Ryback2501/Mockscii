@@ -17,11 +17,25 @@ describe('toolbar', () => {
     tools = makeTools();
   });
 
-  it('renders the select, fg, and bg buttons', () => {
+  it('renders the select, fg, bg and undo/redo buttons', () => {
     const tb = createToolbar(container, { tools });
-    expect(container.querySelectorAll('button.tool')).toHaveLength(3);
+    // select, fg, bg, undo, redo
+    expect(container.querySelectorAll('button.tool')).toHaveLength(5);
     expect(tb.selectButton.textContent).toBe('↑');
     expect(tb.fgButton.textContent).toBe('A');
+    expect(container.querySelector('.tool-undo')).toBeTruthy();
+    expect(container.querySelector('.tool-redo')).toBeTruthy();
+  });
+
+  it('reflects undo/redo availability from the history', () => {
+    let undoable = false;
+    const history = { canUndo: () => undoable, canRedo: () => false };
+    const tb = createToolbar(container, { tools, history });
+    expect(tb.undoButton.disabled).toBe(true);
+    expect(tb.redoButton.disabled).toBe(true);
+    undoable = true;
+    tb.refresh();
+    expect(tb.undoButton.disabled).toBe(false);
   });
 
   it('starts in draw mode with the fg channel active', () => {

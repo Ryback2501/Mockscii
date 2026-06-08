@@ -4,6 +4,7 @@
 // that palette picks (a later task) will assign to.
 
 import { DEFAULT_FG } from './palette.js';
+import { ICONS, iconButton } from './icons.js';
 
 export function createToolbar(container, options = {}) {
   const doc = container.ownerDocument;
@@ -12,6 +13,10 @@ export function createToolbar(container, options = {}) {
   const onChannelChange = options.onChannelChange ?? (() => {});
   // tools.fg / tools.bg hold palette colour ids; resolve them for display.
   const colorOf = options.colorOf ?? (() => undefined);
+  // Optional undo/redo history (exposes canUndo/canRedo + undo/redo).
+  const history = options.history ?? null;
+  const onUndo = options.onUndo ?? (() => {});
+  const onRedo = options.onRedo ?? (() => {});
 
   function button(label, cls, title) {
     const b = doc.createElement('button');
@@ -25,6 +30,8 @@ export function createToolbar(container, options = {}) {
   const selectBtn = button('↑', 'tool-select', 'Toggle selection mode');
   const fgBtn = button('A', 'tool-fg', 'Foreground colour');
   const bgBtn = button('■', 'tool-bg', 'Background colour');
+  const undoBtn = iconButton(doc, 'tool tool-undo', ICONS.undo, 'Undo (Ctrl+Z)');
+  const redoBtn = iconButton(doc, 'tool tool-redo', ICONS.redo, 'Redo (Ctrl+Y)');
 
   function refresh() {
     const selecting = tools.mode === 'select';
@@ -39,6 +46,11 @@ export function createToolbar(container, options = {}) {
     bgBtn.textContent = bgColor ? '■' : '□';
     bgBtn.style.color = bgColor || 'inherit';
     bgBtn.classList.toggle('channel-active', tools.activeChannel === 'bg');
+
+    if (history) {
+      undoBtn.disabled = !history.canUndo();
+      redoBtn.disabled = !history.canRedo();
+    }
   }
 
   selectBtn.addEventListener('click', () => {
@@ -56,14 +68,24 @@ export function createToolbar(container, options = {}) {
     refresh();
     onChannelChange('bg');
   });
+  undoBtn.addEventListener('click', () => {
+    onUndo();
+    refresh();
+  });
+  redoBtn.addEventListener('click', () => {
+    onRedo();
+    refresh();
+  });
 
-  container.replaceChildren(selectBtn, fgBtn, bgBtn);
+  container.replaceChildren(selectBtn, fgBtn, bgBtn, undoBtn, redoBtn);
   refresh();
 
   return {
     element: container,
     refresh,
     selectButton: selectBtn,
+    undoButton: undoBtn,
+    redoButton: redoBtn,
     fgButton: fgBtn,
     bgButton: bgBtn,
   };
