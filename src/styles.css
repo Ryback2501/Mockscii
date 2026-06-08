@@ -24,9 +24,30 @@ body {
   overflow: hidden;
 }
 
+/* Left column: a fixed top bar over the grid. */
+#main-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#top-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
 #grid-area {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   overflow: hidden;
 }
@@ -49,13 +70,8 @@ body {
   overflow: hidden;
 }
 
-/* Top controls and the bottom Export/Import bar stay pinned; only the glyph
-   selector in the middle scrolls. */
-.app-title,
-#font-control,
-#toolbar,
-#palette,
-#io-controls {
+/* In the side panel only the palette is pinned; the glyph selector scrolls. */
+#palette {
   flex: 0 0 auto;
 }
 
@@ -66,7 +82,7 @@ body {
 }
 
 .app-title {
-  margin: 0 0 0.6rem;
+  margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -74,11 +90,8 @@ body {
 
 .font-control {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding-bottom: 0.6rem;
-  margin-bottom: 0.4rem;
-  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .font-label {
@@ -99,9 +112,6 @@ body {
 #toolbar {
   display: flex;
   gap: 4px;
-  padding-bottom: 0.6rem;
-  margin-bottom: 0.4rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .tool {
@@ -186,9 +196,7 @@ body {
 #io-controls {
   display: flex;
   gap: 6px;
-  padding-top: 0.6rem;
-  margin-top: 0.4rem;
-  border-top: 1px solid var(--border);
+  margin-left: auto; /* push Export/Import to the far right of the top bar */
 }
 
 .io-btn {
