@@ -32,6 +32,7 @@ export function createPalette(container, options = {}) {
   const doc = container.ownerDocument;
   const tools = options.tools;
   const onAssign = options.onAssign ?? (() => {});
+  const onChannelChange = options.onChannelChange ?? (() => {});
   const pick = options.openColorPicker ?? openColorPicker;
   const pickOptions = { document: doc, root: options.modalRoot ?? doc.body };
   const defaults = { fg: DEFAULT_FG, bg: DEFAULT_BG, ...(options.defaults ?? {}) };
@@ -41,6 +42,21 @@ export function createPalette(container, options = {}) {
   let entries = [...(options.colors ?? DEFAULT_COLORS)].map((color) => ({ id: nextId++, color }));
   // Selected colour *id* per channel, or null when nothing is selected.
   const selection = { fg: null, bg: null };
+
+  // Foreground / background channel buttons, on the left of the palette.
+  const channels = doc.createElement('div');
+  channels.className = 'palette-channels';
+  const fgBtn = doc.createElement('button');
+  fgBtn.type = 'button';
+  fgBtn.className = 'palette-channel channel-fg';
+  fgBtn.textContent = 'A';
+  fgBtn.title = 'Foreground colour';
+  const bgBtn = doc.createElement('button');
+  bgBtn.type = 'button';
+  bgBtn.className = 'palette-channel channel-bg';
+  bgBtn.textContent = '■';
+  bgBtn.title = 'Background colour';
+  channels.append(fgBtn, bgBtn);
 
   const swatches = doc.createElement('div');
   swatches.className = 'palette-swatches';
@@ -85,6 +101,20 @@ export function createPalette(container, options = {}) {
     const hasSelection = sel != null;
     editBtn.disabled = !hasSelection;
     removeBtn.disabled = !hasSelection;
+
+    // Reflect each channel's colour and which one is active.
+    fgBtn.style.color = colorFor('fg') || 'inherit';
+    fgBtn.classList.toggle('active', activeChannel() === 'fg');
+    const bgColor = colorOf(selection.bg);
+    bgBtn.textContent = bgColor ? '■' : '□';
+    bgBtn.style.color = bgColor || 'inherit';
+    bgBtn.classList.toggle('active', activeChannel() === 'bg');
+  }
+
+  function selectChannel(ch) {
+    tools.activeChannel = ch;
+    render();
+    onChannelChange(ch);
   }
 
   // Edit the active channel's currently selected colour (used by the pencil button).
@@ -177,11 +207,13 @@ export function createPalette(container, options = {}) {
   addBtn.addEventListener('click', addColor);
   editBtn.addEventListener('click', editSelected);
   removeBtn.addEventListener('click', removeColor);
+  fgBtn.addEventListener('click', () => selectChannel('fg'));
+  bgBtn.addEventListener('click', () => selectChannel('bg'));
 
   // Reflect the (initially empty) channel selections into tools, then render.
   tools.fg = selection.fg;
   tools.bg = selection.bg;
-  container.replaceChildren(swatches, controls);
+  container.replaceChildren(channels, swatches, controls);
   render();
 
   return {
@@ -198,5 +230,7 @@ export function createPalette(container, options = {}) {
     edit: editSelected,
     remove: removeColor,
     selectIndex,
+    fgButton: fgBtn,
+    bgButton: bgBtn,
   };
 }

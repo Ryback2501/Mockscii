@@ -131,7 +131,6 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   if (toolbarEl) {
     toolbar = createToolbar(toolbarEl, {
       tools,
-      colorOf,
       history,
       onUndo: () => history.undo(),
       onRedo: () => history.redo(),
@@ -143,7 +142,6 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
         history.commit();
       },
       // Switching channel re-highlights that channel's selected swatch.
-      onChannelChange: () => palette?.refresh(),
       // Leaving a tool tidies up its transient state.
       onToolChange: (tool) => {
         if (tool !== 'select') select?.clear();
@@ -157,10 +155,7 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
     palette = createPalette(paletteEl, {
       tools,
       // Assigning a colour (by id) also recolours the current selection.
-      onAssign: (channel, id) => {
-        toolbar?.refresh();
-        select?.recolor(channel, id);
-      },
+      onAssign: (channel, id) => select?.recolor(channel, id),
     });
   }
 

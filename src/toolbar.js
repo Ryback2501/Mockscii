@@ -1,7 +1,6 @@
-// Top-bar toolbar: a tool group (draw / erase / fill / select, with more tools
-// added in later PRs) that sets the active `tools.tool`, the foreground (A) and
-// background (■) colour-channel buttons, and undo / redo / clear actions.
-import { DEFAULT_FG } from './palette.js';
+// Top-bar toolbar: a tool group (draw / erase / fill / line / rect / text /
+// select) that sets the active `tools.tool`, plus undo / redo / clear actions.
+// The foreground/background colour-channel buttons live in the palette section.
 import { ICONS, iconButton } from './icons.js';
 
 // The mutually-exclusive pointer tools, in display order. `icon` ones use an
@@ -20,9 +19,6 @@ export function createToolbar(container, options = {}) {
   const doc = container.ownerDocument;
   const tools = options.tools;
   const onToolChange = options.onToolChange ?? (() => {});
-  const onChannelChange = options.onChannelChange ?? (() => {});
-  // tools.fg / tools.bg hold palette colour ids; resolve them for display.
-  const colorOf = options.colorOf ?? (() => undefined);
   // Optional undo/redo history (exposes canUndo/canRedo + undo/redo).
   const history = options.history ?? null;
   const onUndo = options.onUndo ?? (() => {});
@@ -51,8 +47,6 @@ export function createToolbar(container, options = {}) {
     return { tool: def.tool, el };
   });
 
-  const fgBtn = button('A', 'tool-fg', 'Foreground colour');
-  const bgBtn = button('■', 'tool-bg', 'Background colour');
   const undoBtn = iconButton(doc, 'tool tool-undo', ICONS.undo, 'Undo (Ctrl+Z)');
   const redoBtn = iconButton(doc, 'tool tool-redo', ICONS.redo, 'Redo (Ctrl+Y)');
   const clearBtn = iconButton(doc, 'tool tool-clear', ICONS.clear, 'Clear the canvas');
@@ -65,31 +59,12 @@ export function createToolbar(container, options = {}) {
       t.el.setAttribute('aria-pressed', String(on));
     }
 
-    const fgColor = colorOf(tools.fg) ?? DEFAULT_FG;
-    const bgColor = colorOf(tools.bg);
-    fgBtn.style.color = fgColor || 'inherit';
-    fgBtn.classList.toggle('channel-active', tools.activeChannel === 'fg');
-
-    bgBtn.textContent = bgColor ? '■' : '□';
-    bgBtn.style.color = bgColor || 'inherit';
-    bgBtn.classList.toggle('channel-active', tools.activeChannel === 'bg');
-
     if (history) {
       undoBtn.disabled = !history.canUndo();
       redoBtn.disabled = !history.canRedo();
     }
   }
 
-  fgBtn.addEventListener('click', () => {
-    tools.activeChannel = 'fg';
-    refresh();
-    onChannelChange('fg');
-  });
-  bgBtn.addEventListener('click', () => {
-    tools.activeChannel = 'bg';
-    refresh();
-    onChannelChange('bg');
-  });
   undoBtn.addEventListener('click', () => {
     onUndo();
     refresh();
@@ -104,14 +79,7 @@ export function createToolbar(container, options = {}) {
   });
 
   const byTool = (name) => toolButtons.find((t) => t.tool === name)?.el;
-  container.replaceChildren(
-    ...toolButtons.map((t) => t.el),
-    fgBtn,
-    bgBtn,
-    undoBtn,
-    redoBtn,
-    clearBtn,
-  );
+  container.replaceChildren(...toolButtons.map((t) => t.el), undoBtn, redoBtn, clearBtn);
   refresh();
 
   return {
@@ -125,8 +93,6 @@ export function createToolbar(container, options = {}) {
     lineButton: byTool('line'),
     rectButton: byTool('rect'),
     textButton: byTool('text'),
-    fgButton: fgBtn,
-    bgButton: bgBtn,
     undoButton: undoBtn,
     redoButton: redoBtn,
     clearButton: clearBtn,

@@ -211,4 +211,32 @@ describe('palette control', () => {
     await flush();
     expect(p.colorOf(id)).toBe('#0d0e0f');
   });
+
+  it('renders foreground and background channel buttons (fg active by default)', () => {
+    const p = createPalette(container, { tools, colors: ['#111111'] });
+    expect(container.querySelector('.channel-fg')).toBeTruthy();
+    expect(container.querySelector('.channel-bg')).toBeTruthy();
+    expect(p.fgButton.classList.contains('active')).toBe(true);
+    expect(p.bgButton.classList.contains('active')).toBe(false);
+    expect(p.bgButton.textContent).toBe('□'); // no background colour yet
+  });
+
+  it('the background channel button switches the active channel and assigns there', () => {
+    const p = createPalette(container, { tools, colors: ['#111111', '#222222'] });
+    p.bgButton.click();
+    expect(tools.activeChannel).toBe('bg');
+    expect(p.bgButton.classList.contains('active')).toBe(true);
+    expect(p.fgButton.classList.contains('active')).toBe(false);
+
+    container.querySelectorAll('button.swatch')[1].click();
+    expect(p.colorOf(tools.bg)).toBe('#222222');
+    expect(tools.fg).toBeNull(); // foreground untouched
+    expect(p.bgButton.textContent).toBe('■'); // now shows a background
+  });
+
+  it('the foreground button reflects the selected foreground colour', () => {
+    const p = createPalette(container, { tools, colors: ['#abcdef'] });
+    container.querySelector('button.swatch').click();
+    expect(p.fgButton.style.color).toBe('rgb(171, 205, 239)');
+  });
 });
