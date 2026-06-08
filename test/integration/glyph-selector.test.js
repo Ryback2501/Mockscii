@@ -49,6 +49,23 @@ describe('glyph selector', () => {
     expect(container.querySelectorAll('button.glyph.selected')).toHaveLength(0);
   });
 
+  it('folds and unfolds a group when its header is clicked', () => {
+    createGlyphSelector(container);
+    const title = container.querySelector('.glyph-group-title');
+    expect(title.tagName).toBe('BUTTON');
+    const section = title.closest('.glyph-group');
+    expect(section.classList.contains('collapsed')).toBe(false);
+    expect(title.getAttribute('aria-expanded')).toBe('true');
+
+    title.click();
+    expect(section.classList.contains('collapsed')).toBe(true);
+    expect(title.getAttribute('aria-expanded')).toBe('false');
+
+    title.click();
+    expect(section.classList.contains('collapsed')).toBe(false);
+    expect(title.getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('respects an initial selection', () => {
     const sel = createGlyphSelector(container, { initial: 'A' });
     expect(sel.getSelected()).toBe('A');
