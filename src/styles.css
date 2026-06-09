@@ -279,11 +279,66 @@ body {
   min-width: 220px;
 }
 
+.cp-modal {
+  width: 360px;
+  max-width: calc(100vw - 2rem);
+}
+
+.cp-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cp-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+.cp-header button {
+  padding: 0.35rem 0.8rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cp-table {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.cp-cell {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cp-cell.selected {
+  outline: 2px solid #4ea1ff;
+  outline-offset: 1px;
+}
+
+.cp-custom-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  margin-bottom: 0.3rem;
+}
+
 .cp-row {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  margin-bottom: 0.75rem;
 }
 
 .cp-color {
