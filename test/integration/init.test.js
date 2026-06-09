@@ -65,4 +65,23 @@ describe('init (integration)', () => {
     expect(api.grid.grid.cols).toBe(Math.floor(400 / 10));
     expect(api.grid.grid.rows).toBe(Math.floor(300 / 16));
   });
+
+  it('switches the erase tool to draw when a glyph is picked', () => {
+    document.body.innerHTML = `
+      <main id="app">
+        <div id="top-bar"><div id="toolbar"></div></div>
+        <section id="grid-area"><canvas id="grid"></canvas></section>
+        <aside id="side-panel"><section id="glyph-selector"></section></aside>
+      </main>`;
+    const c = document.getElementById('grid');
+    c.getContext = vi.fn(() => fakeCtx());
+    sizeCanvas(c, 800, 600);
+
+    const api = init(document, window);
+    api.tools.tool = 'erase';
+    document.querySelector('#glyph-selector button.glyph').click();
+
+    expect(api.tools.tool).toBe('draw');
+    expect(api.toolbar.drawButton.classList.contains('active')).toBe(true);
+  });
 });

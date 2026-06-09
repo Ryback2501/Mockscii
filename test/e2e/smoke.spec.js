@@ -217,6 +217,19 @@ test('rectangle tool stamps a hollow box', async ({ page }) => {
   expect(res.center).toBe(false); // hollow
 });
 
+test('picking a glyph while erasing switches to the draw tool', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  await page.getByTestId('toolbar').locator('.tool-erase').click();
+  expect(await page.evaluate(() => window.__mockscii.tools.tool)).toBe('erase');
+
+  await page
+    .getByTestId('glyph-selector')
+    .locator('button.glyph', { hasText: '@' })
+    .first()
+    .click();
+  expect(await page.evaluate(() => window.__mockscii.tools.tool)).toBe('draw');
+});
+
 test('eraser tool removes a painted cell', async ({ page }) => {
   await page.goto('/Mockscii/');
   await page

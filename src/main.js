@@ -164,7 +164,14 @@ export function init(doc = document, win = typeof window !== 'undefined' ? windo
   if (panel) {
     selector = createGlyphSelector(panel, {
       initial: tools.glyph,
-      onSelect: (ch) => (tools.glyph = ch),
+      onSelect: (ch) => {
+        tools.glyph = ch;
+        // Picking a glyph while erasing means you want to draw it.
+        if (tools.tool === 'erase') {
+          tools.tool = 'draw';
+          toolbar?.refresh();
+        }
+      },
     });
     tools.glyph = selector.getSelected();
   }
