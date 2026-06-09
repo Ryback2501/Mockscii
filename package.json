@@ -1,6 +1,6 @@
 {
   "name": "mockscii",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A web editor for designing colored terminal-app mockups.",
   "type": "module",
   "license": "MIT",
