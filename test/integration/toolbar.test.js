@@ -45,8 +45,6 @@ describe('toolbar', () => {
     );
     expect(order).toEqual([
       'tool-select',
-      'tool-undo',
-      'tool-redo',
       'tool-draw',
       'tool-erase',
       'tool-fill',
@@ -54,6 +52,8 @@ describe('toolbar', () => {
       'tool-rect',
       'tool-text',
       'tool-clear',
+      'tool-undo',
+      'tool-redo',
     ]);
   });
 
