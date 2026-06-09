@@ -114,7 +114,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.read-version.outputs.version }}
         run: |
-          gh release create "v$VERSION" --generate-notes --title "v$VERSION" \
+          # Create the release with an empty body — no auto-generated commit
+          # log. The release notes are written/edited by hand on the release page.
+          gh release create "v$VERSION" --title "v$VERSION" --notes "" \
             "mockscii-$VERSION.zip"
 
   deploy:
