@@ -8,6 +8,29 @@ describe('color picker modal', () => {
     document.body.innerHTML = '';
   });
 
+  it('renders a 9x5 preset grid plus the custom colour controls', () => {
+    const p = openColorPicker('#000000');
+    const o = overlay();
+    expect(o.querySelectorAll('.cp-cell')).toHaveLength(45);
+    expect(o.querySelector('.cp-color')).toBeTruthy();
+    expect(o.querySelector('.cp-hex')).toBeTruthy();
+    o.querySelector('.cp-cancel').click();
+    return p;
+  });
+
+  it('clicking a preset updates the custom controls and Select resolves it', async () => {
+    const p = openColorPicker('#000000');
+    const o = overlay();
+    const cell = o.querySelectorAll('.cp-cell')[10];
+    const color = cell.dataset.color;
+    cell.click();
+    expect(o.querySelector('.cp-hex').value).toBe(color);
+    expect(o.querySelector('.cp-color').value).toBe(color);
+    expect(cell.classList.contains('selected')).toBe(true);
+    o.querySelector('.cp-ok').click();
+    await expect(p).resolves.toBe(color);
+  });
+
   it('resolves with the chosen hex on OK', async () => {
     const p = openColorPicker('#000000');
     const hex = overlay().querySelector('.cp-hex');
