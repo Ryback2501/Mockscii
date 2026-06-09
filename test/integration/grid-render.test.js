@@ -83,6 +83,16 @@ describe('grid render', () => {
     expect(ctx.strokeRect).toHaveBeenCalled();
   });
 
+  it('draws a single bounding rectangle around a multi-cell selection', () => {
+    const selection = { keys: new Set(['1,1', '2,1', '1,2', '2,2']), offset: null };
+    const g = createGrid(canvas, { window, cells, selection });
+    g.resize();
+    const { width: W, height: H } = g.grid.cell;
+    // One outer rectangle, not one per selected cell.
+    expect(ctx.strokeRect).toHaveBeenCalledTimes(1);
+    expect(ctx.strokeRect).toHaveBeenCalledWith(1 * W + 0.5, 1 * H + 0.5, 2 * W - 1, 2 * H - 1);
+  });
+
   it('changes the render size via setFontFamily(family, size) and setFontSize', () => {
     grid.resize();
     grid.setFontFamily('monospace', 22);

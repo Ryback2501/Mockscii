@@ -135,21 +135,36 @@ export function createGrid(canvas, options = {}) {
       ctx.restore();
     }
 
-    // Selection highlight, drawn on top (shifted live while a move drag is active).
+    // Selection highlight, drawn on top (shifted live while a move drag is
+    // active): a translucent fill over the selected cells plus a single outer
+    // rectangle around the whole selection — not a border per cell.
     if (selection.keys && selection.keys.size) {
       const ox = selection.offset?.x ?? 0;
       const oy = selection.offset?.y ?? 0;
       ctx.save();
       ctx.fillStyle = 'rgba(78, 161, 255, 0.25)';
-      ctx.strokeStyle = 'rgba(78, 161, 255, 0.9)';
-      ctx.lineWidth = 1;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
       selection.keys.forEach((key) => {
         const comma = key.indexOf(',');
-        const hx = (Number(key.slice(0, comma)) + ox) * W;
-        const hy = (Number(key.slice(comma + 1)) + oy) * H;
-        ctx.fillRect(hx, hy, W, H);
-        ctx.strokeRect(hx + 0.5, hy + 0.5, W - 1, H - 1);
+        const cx = Number(key.slice(0, comma));
+        const cy = Number(key.slice(comma + 1));
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
+        ctx.fillRect((cx + ox) * W, (cy + oy) * H, W, H);
       });
+      ctx.strokeStyle = 'rgba(78, 161, 255, 0.9)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(
+        (minX + ox) * W + 0.5,
+        (minY + oy) * H + 0.5,
+        (maxX - minX + 1) * W - 1,
+        (maxY - minY + 1) * H - 1,
+      );
       ctx.restore();
     }
 
