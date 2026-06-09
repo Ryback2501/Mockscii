@@ -8,24 +8,27 @@ describe('color picker modal', () => {
     document.body.innerHTML = '';
   });
 
-  it('renders a 9x5 preset grid plus the custom colour controls', () => {
+  it('renders the preset grid plus the inline HSV controls', () => {
     const p = openColorPicker('#000000');
     const o = overlay();
     expect(o.querySelectorAll('.cp-cell')).toHaveLength(45);
-    expect(o.querySelector('.cp-color')).toBeTruthy();
+    expect(o.querySelector('.cp-preview')).toBeTruthy();
     expect(o.querySelector('.cp-hex')).toBeTruthy();
+    expect(o.querySelector('.cp-hue')).toBeTruthy();
+    expect(o.querySelector('.cp-sv')).toBeTruthy();
+    // The preview is a plain div, not an input that opens the OS picker.
+    expect(o.querySelector('.cp-preview').tagName).toBe('DIV');
     o.querySelector('.cp-cancel').click();
     return p;
   });
 
-  it('clicking a preset updates the custom controls and Select resolves it', async () => {
+  it('clicking a preset updates the preview/hex and Select resolves it', async () => {
     const p = openColorPicker('#000000');
     const o = overlay();
     const cell = o.querySelectorAll('.cp-cell')[10];
     const color = cell.dataset.color;
     cell.click();
     expect(o.querySelector('.cp-hex').value).toBe(color);
-    expect(o.querySelector('.cp-color').value).toBe(color);
     expect(cell.classList.contains('selected')).toBe(true);
     o.querySelector('.cp-ok').click();
     await expect(p).resolves.toBe(color);
@@ -41,15 +44,31 @@ describe('color picker modal', () => {
     expect(overlay()).toBeNull();
   });
 
-  it('syncs the colour input from the hex field', async () => {
+  it('updates the preview swatch from the hex field', async () => {
     const p = openColorPicker('#000000');
     const hex = overlay().querySelector('.cp-hex');
-    const color = overlay().querySelector('.cp-color');
+    const preview = overlay().querySelector('.cp-preview');
     hex.value = '#abcdef';
     hex.dispatchEvent(new window.Event('input'));
-    expect(color.value).toBe('#abcdef');
+    expect(preview.style.backgroundColor).toBe('rgb(171, 205, 239)');
     overlay().querySelector('.cp-cancel').click();
     await p;
+  });
+
+  it('shows the eyedropper button only when the EyeDropper API exists', async () => {
+    const original = window.EyeDropper;
+    window.EyeDropper = function EyeDropper() {};
+    const p1 = openColorPicker('#000000');
+    expect(overlay().querySelector('.cp-eyedrop')).toBeTruthy();
+    overlay().querySelector('.cp-cancel').click();
+    await p1;
+
+    delete window.EyeDropper;
+    const p2 = openColorPicker('#000000');
+    expect(overlay().querySelector('.cp-eyedrop')).toBeNull();
+    overlay().querySelector('.cp-cancel').click();
+    await p2;
+    if (original) window.EyeDropper = original;
   });
 
   it('resolves null on cancel', async () => {
