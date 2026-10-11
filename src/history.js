@@ -43,6 +43,13 @@ export function createHistory(cells, onChange = () => {}) {
       onChange();
       return true;
     },
+    /** Start a fresh history from the current cell state (e.g. after opening a project). */
+    reset() {
+      baseline = snapshot(cells);
+      undoStack.length = 0;
+      redoStack.length = 0;
+      onChange();
+    },
     canUndo: () => undoStack.length > 0,
     canRedo: () => redoStack.length > 0,
   };

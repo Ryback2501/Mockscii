@@ -1,6 +1,6 @@
 // Glyph selector panel: a grouped grid of clickable glyphs plus a custom-character
 // input. Single-select — clicking a glyph (or typing one) sets the active paint glyph.
-import { GLYPH_GROUPS, DEFAULT_GLYPH, codePointLabel } from './glyphs.js';
+import { GLYPH_GROUPS, DEFAULT_GLYPH, describeGlyph } from './glyphs.js';
 
 export function createGlyphSelector(container, options = {}) {
   const doc = container.ownerDocument;
@@ -56,7 +56,7 @@ export function createGlyphSelector(container, options = {}) {
       btn.type = 'button';
       btn.className = 'glyph';
       btn.textContent = ch;
-      btn.title = codePointLabel(ch);
+      btn.title = describeGlyph(ch);
       btn.addEventListener('click', () => select(ch));
       buttons.set(ch, btn);
       grid.appendChild(btn);

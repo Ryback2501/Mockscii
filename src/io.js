@@ -2,13 +2,14 @@
 // saved file captures the sparse painted cells, the chosen font, and the
 // palette. Cells reference palette colours by their stable id, so the palette
 // is saved as { id, color } entries and the cell fg/bg ids stay valid across a
-// round-trip. Grid cols/rows are viewport-derived (auto-fit) and are NOT saved;
-// cells are stored at absolute coordinates.
+// round-trip. A fixed canvas size ({ cols, rows }) is saved when set; null means
+// the grid auto-fits the viewport. Guides are saved as cell-edge indices
+// ({ v, h }). Cells are stored at absolute coordinates.
 
 export const SCHEMA_VERSION = 1;
 
 /** Build the plain-object document for the current editor state. */
-export function serialize({ font, palette, cells }) {
+export function serialize({ font, size, palette, cells, guides }) {
   const cellList = [];
   cells.forEach((x, y, cell) => {
     cellList.push({ x, y, ch: cell.ch, fg: cell.fg ?? null, bg: cell.bg ?? null });
@@ -17,6 +18,8 @@ export function serialize({ font, palette, cells }) {
   return {
     version: SCHEMA_VERSION,
     font: typeof font === 'string' ? font : null,
+    size: validSize(size),
+    guides: validGuides(guides),
     palette: entries,
     cells: cellList,
   };
@@ -29,6 +32,8 @@ export function deserialize(data) {
   }
 
   const font = typeof data.font === 'string' ? data.font : null;
+  const size = validSize(data.size);
+  const guides = validGuides(data.guides);
 
   const palette =
     Array.isArray(data.palette) &&
@@ -47,7 +52,23 @@ export function deserialize(data) {
       )
     : [];
 
-  return { font, palette, cells };
+  return { font, size, guides, palette, cells };
+}
+
+function validGuides(guides) {
+  const edges = (list) =>
+    Array.isArray(list) ? list.filter((n) => Number.isInteger(n) && n >= 0) : [];
+  return { v: edges(guides?.v), h: edges(guides?.h) };
+}
+
+function validSize(size) {
+  return size &&
+    Number.isInteger(size.cols) &&
+    Number.isInteger(size.rows) &&
+    size.cols > 0 &&
+    size.rows > 0
+    ? { cols: size.cols, rows: size.rows }
+    : null;
 }
 
 /** Replace the store's contents with the given cell list. */

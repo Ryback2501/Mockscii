@@ -22,6 +22,15 @@ export const ICONS = {
     '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/>',
   ),
   eraser: svg('<path d="M16 3l5 5L10 19H5l-3-3z"/><path d="M9 10l5 5"/><path d="M5 19h14"/>'),
+  brush: svg(
+    '<path d="M18.4 2.6a2 2 0 0 1 2.9 2.9L11 15.8 8.2 13Z"/>' +
+      '<path d="M7 14.5c-2 0-3.5 1.5-3.5 3.5 0 1.2-.8 2-1.5 2.5 3.5.5 7-1 7-4z"/>',
+  ),
+  // Dashed selection box with a pointer: the Select tool.
+  select: svg(
+    '<rect x="3" y="3" width="13" height="13" rx="1" stroke-dasharray="3 3"/>' +
+      '<path d="M12 12l9 3.5-4 1.5-1.5 4z" fill="currentColor"/>',
+  ),
   line: svg('<path d="M5 19L19 5"/>'),
   rect: svg('<rect x="4" y="6" width="16" height="12" rx="1"/>'),
   text: svg('<path d="M5 5h14"/><path d="M12 5v14"/><path d="M9 19h6"/>'),

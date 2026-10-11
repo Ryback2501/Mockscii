@@ -1,12 +1,13 @@
 // Pointer paint controller. Handles the click/drag tools selected via
-// `tools.tool`: draw (paint the active glyph), erase (delete cells), fill
+// `tools.tool`: draw (paint the active glyph), erase (delete cells), recolor
+// (repaint the active colour channel of painted cells, keeping their glyph), fill
 // (flood-fill the contiguous region), and the shape tools line + rect (drag to
 // preview, release to stamp). Each gesture commits one undo checkpoint. Select /
 // text are handled by their own controllers.
 import { floodFill } from './fill.js';
 import { linePoints, rectOutline } from './shapes.js';
 
-const PAINT_TOOLS = new Set(['draw', 'erase', 'fill']);
+const PAINT_TOOLS = new Set(['draw', 'erase', 'recolor', 'fill']);
 const SHAPE_TOOLS = new Set(['line', 'rect']);
 
 export function createDrawController({ canvas, grid, cells, tools, window: win, history }) {
@@ -32,6 +33,14 @@ export function createDrawController({ canvas, grid, cells, tools, window: win, 
     const tool = tools.tool ?? 'draw';
     if (tool === 'erase') {
       if (cells.delete(col, row)) dirty = true;
+    } else if (tool === 'recolor') {
+      const cell = cells.get(col, row);
+      if (!cell) return;
+      const channel = tools.activeChannel === 'bg' ? 'bg' : 'fg';
+      const color = tools[channel] ?? null;
+      if (cell[channel] === color) return;
+      cells.set(col, row, { ...cell, [channel]: color });
+      dirty = true;
     } else if (tool === 'fill') {
       const ch = tools.glyph;
       if (ch == null || ch === '') return;
@@ -67,7 +76,13 @@ export function createDrawController({ canvas, grid, cells, tools, window: win, 
       grid.setPreview(null);
       return;
     }
-    grid.setPreview(shapePoints(anchor, shapeEnd).map(([x, y]) => ({ x, y, cell })));
+    // Width x height of the shape's bounding box, in cells (inclusive).
+    const width = Math.abs(shapeEnd.col - anchor.col) + 1;
+    const height = Math.abs(shapeEnd.row - anchor.row) + 1;
+    grid.setPreview(
+      shapePoints(anchor, shapeEnd).map(([x, y]) => ({ x, y, cell })),
+      { text: `${width}×${height}`, x: shapeEnd.col, y: shapeEnd.row },
+    );
   }
 
   function onDown(ev) {

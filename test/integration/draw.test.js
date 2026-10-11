@@ -106,6 +106,22 @@ describe('draw mode', () => {
     expect(cells.has(2, 1)).toBe(false);
   });
 
+  it('recolors the active channel of painted cells, keeping glyphs and skipping empty cells', () => {
+    cells.set(0, 0, { ch: 'A', fg: 1, bg: 2 });
+    cells.set(2, 0, { ch: 'B', fg: 1, bg: null });
+    tools.tool = 'recolor';
+    tools.activeChannel = 'bg';
+    tools.fg = 7;
+    tools.bg = 9;
+    mouse('mousedown', 5, 5); // col 0
+    mouse('mousemove', 15, 5); // col 1 — empty, untouched
+    mouse('mousemove', 25, 5); // col 2
+    mouse('mouseup', 25, 5);
+    expect(cells.get(0, 0)).toEqual({ ch: 'A', fg: 1, bg: 9 });
+    expect(cells.get(2, 0)).toEqual({ ch: 'B', fg: 1, bg: 9 });
+    expect(cells.has(1, 0)).toBe(false);
+  });
+
   it('flood-fills the empty region with the fill tool', () => {
     tools.tool = 'fill';
     tools.glyph = '*';

@@ -1,6 +1,7 @@
-// Canvas-backed character grid: auto-fits its container, derives cols/rows from
-// the available pixel area divided by the cell size, and redraws crisply on
-// resize.
+// Canvas-backed character grid: by default auto-fits its container, deriving
+// cols/rows from the available pixel area divided by the cell size. A fixed
+// canvas size (cols x rows) can be set instead, in which case the canvas is
+// sized to exactly that many cells. Redraws crisply on resize.
 //
 // Glyphs are printed the way a terminal does: each one is drawn at its NATURAL
 // font size, left-aligned to the cell and sitting on the baseline (cell width =
@@ -14,6 +15,7 @@ import { blockSpec } from './blocks.js';
 const BG_COLOR = '#1e1e1e';
 const GRID_LINE = 'rgba(255, 255, 255, 0.05)';
 const DEFAULT_FG = '#d4d4d4';
+export const GUIDE_COLOR = 'rgba(45, 212, 191, 0.9)'; // teal
 
 export function createGrid(canvas, options = {}) {
   const win = options.window ?? (typeof window !== 'undefined' ? window : globalThis);
@@ -23,6 +25,10 @@ export function createGrid(canvas, options = {}) {
   const selection = options.selection ?? { keys: new Set(), offset: null };
   // Resolves a palette colour id to a hex string; dangling/null -> default.
   const colorOf = options.colorOf ?? (() => undefined);
+  // Layout guides ({ v, h, visible, preview }), drawn above everything.
+  const guides = options.guides ?? null;
+  // Called after every resize (cell size / cols / rows may have changed).
+  const onLayout = options.onLayout ?? (() => {});
   const ctx = canvas.getContext ? canvas.getContext('2d') : null;
 
   const grid = {
@@ -31,16 +37,23 @@ export function createGrid(canvas, options = {}) {
     cell: { width: 0, height: 0 },
     fontFamily,
     fontSize,
+    fixed: false, // true while a fixed canvas size is set
+    pxWidth: 0, // canvas CSS size
+    pxHeight: 0,
   };
 
   // Baseline offset (top of cell to the text baseline), in CSS pixels — glyphs
   // are drawn here at natural size, the way a terminal prints them.
   let baselineY = fontSize * 0.8;
 
-  // Transient overlay of cells previewed by a tool mid-drag (line/rect).
+  // Transient overlay of cells previewed by a tool mid-drag (line/rect), plus an
+  // optional dimension label ({ text, x, y } — anchored at cell x,y).
   let preview = null;
+  let previewLabel = null;
   // Text-cursor caret position ({ x, y }) or null.
   let cursorPos = null;
+  // Fixed canvas size ({ cols, rows }) or null to auto-fit the container.
+  let fixedSize = null;
 
   const dpr = () => win.devicePixelRatio || 1;
 
@@ -135,6 +148,28 @@ export function createGrid(canvas, options = {}) {
       ctx.restore();
     }
 
+    // Shape dimension tag (e.g. "12×5"), placed just below-right of the drag end
+    // cell and kept inside the canvas.
+    if (previewLabel) {
+      ctx.save();
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      const padX = 5;
+      const tagW = Math.ceil(ctx.measureText(previewLabel.text).width) + padX * 2;
+      const tagH = 18;
+      let tx = (previewLabel.x + 1) * W + 4;
+      let ty = (previewLabel.y + 1) * H + 4;
+      if (tx + tagW > w) tx = previewLabel.x * W - tagW - 4;
+      if (ty + tagH > h) ty = previewLabel.y * H - tagH - 4;
+      tx = Math.max(0, tx);
+      ty = Math.max(0, ty);
+      ctx.fillStyle = 'rgba(78, 161, 255, 0.95)';
+      ctx.fillRect(tx, ty, tagW, tagH);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(previewLabel.text, tx + padX, ty + tagH / 2);
+      ctx.restore();
+    }
+
     // Selection highlight, drawn on top (shifted live while a move drag is
     // active): a translucent fill over the selected cells plus a single outer
     // rectangle around the whole selection — not a border per cell.
@@ -175,23 +210,71 @@ export function createGrid(canvas, options = {}) {
       ctx.fillRect(cursorPos.x * W, cursorPos.y * H, Math.max(2, W * 0.12), H);
       ctx.restore();
     }
+
+    // Guides: full-length lines on cell edges, topmost layer. The guide being
+    // dragged is drawn at its live position instead (dashed when it would be
+    // deleted on drop).
+    const p = guides?.preview;
+    if (p || (guides?.visible && (guides.v.length || guides.h.length))) {
+      ctx.save();
+      ctx.fillStyle = GUIDE_COLOR;
+      guides.v.forEach((c, i) => {
+        if (!(p && p.axis === 'v' && p.index === i)) ctx.fillRect(Math.round(c * W), 0, 1, h);
+      });
+      guides.h.forEach((r, i) => {
+        if (!(p && p.axis === 'h' && p.index === i)) ctx.fillRect(0, Math.round(r * H), w, 1);
+      });
+      if (p) {
+        ctx.strokeStyle = GUIDE_COLOR;
+        ctx.lineWidth = 1;
+        if (!p.inside && ctx.setLineDash) ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        if (p.axis === 'v') {
+          const x = Math.round(p.pos * W) + 0.5;
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+        } else {
+          const y = Math.round(p.pos * H) + 0.5;
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
   }
 
   function resize() {
     const ratio = dpr();
-    const cssW = canvas.clientWidth || canvas.parentElement?.clientWidth || 0;
-    const cssH = canvas.clientHeight || canvas.parentElement?.clientHeight || 0;
+    measureCell();
 
+    let cssW;
+    let cssH;
+    if (fixedSize) {
+      grid.cols = fixedSize.cols;
+      grid.rows = fixedSize.rows;
+      cssW = grid.cols * grid.cell.width + 1; // +1 so the closing grid line shows
+      cssH = grid.rows * grid.cell.height + 1;
+      if (canvas.style) {
+        canvas.style.width = `${cssW}px`;
+        canvas.style.height = `${cssH}px`;
+      }
+    } else {
+      cssW = canvas.clientWidth || canvas.parentElement?.clientWidth || 0;
+      cssH = canvas.clientHeight || canvas.parentElement?.clientHeight || 0;
+      const dims = gridDimensions(cssW, cssH, grid.cell);
+      grid.cols = dims.cols;
+      grid.rows = dims.rows;
+    }
+
+    grid.pxWidth = cssW;
+    grid.pxHeight = cssH;
     canvas.width = Math.max(1, Math.round(cssW * ratio));
     canvas.height = Math.max(1, Math.round(cssH * ratio));
     if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-    measureCell();
-    const dims = gridDimensions(cssW, cssH, grid.cell);
-    grid.cols = dims.cols;
-    grid.rows = dims.rows;
-
     render();
+    onLayout(grid);
     return grid;
   }
 
@@ -206,9 +289,24 @@ export function createGrid(canvas, options = {}) {
     return resize(); // re-measure the cell, re-fit cols/rows, redraw
   }
 
-  // Set (or clear) the transient tool preview overlay and redraw.
-  function setPreview(list) {
+  // Fix the grid at cols x rows cells, or pass null to auto-fit the container.
+  function setSize(size) {
+    const cols = Math.floor(size?.cols);
+    const rows = Math.floor(size?.rows);
+    fixedSize = cols > 0 && rows > 0 ? { cols, rows } : null;
+    grid.fixed = fixedSize !== null;
+    if (!fixedSize && canvas.style) {
+      canvas.style.width = '';
+      canvas.style.height = '';
+    }
+    return resize();
+  }
+
+  // Set (or clear) the transient tool preview overlay (and its optional
+  // dimension label) and redraw.
+  function setPreview(list, label = null) {
     preview = list && list.length ? list : null;
+    previewLabel = preview && label ? label : null;
     render();
   }
 
@@ -234,6 +332,7 @@ export function createGrid(canvas, options = {}) {
     measureCell,
     setFontFamily,
     setFontSize,
+    setSize,
     setPreview,
     setCursor,
   };

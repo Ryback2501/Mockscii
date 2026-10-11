@@ -1,4 +1,4 @@
-// Top-bar toolbar: a tool group (draw / erase / fill / line / rect / text /
+// Top-bar toolbar: a tool group (draw / erase / recolor / fill / line / rect / text /
 // select) that sets the active `tools.tool`, plus undo / redo / clear actions.
 // The foreground/background colour-channel buttons live in the palette section.
 import { ICONS, iconButton } from './icons.js';
@@ -8,11 +8,12 @@ import { ICONS, iconButton } from './icons.js';
 const TOOL_DEFS = [
   { tool: 'draw', icon: ICONS.pencil, title: 'Draw' },
   { tool: 'erase', icon: ICONS.eraser, title: 'Erase' },
+  { tool: 'recolor', icon: ICONS.brush, title: 'Recolor (active colour channel)' },
   { tool: 'fill', icon: ICONS.bucket, title: 'Fill' },
   { tool: 'line', icon: ICONS.line, title: 'Line' },
   { tool: 'rect', icon: ICONS.rect, title: 'Rectangle' },
   { tool: 'text', icon: ICONS.text, title: 'Type text' },
-  { tool: 'select', label: '↑', title: 'Select' },
+  { tool: 'select', icon: ICONS.select, title: 'Select (Ctrl+C / Ctrl+V to copy and paste)' },
 ];
 
 export function createToolbar(container, options = {}) {
@@ -79,11 +80,12 @@ export function createToolbar(container, options = {}) {
   });
 
   const byTool = (name) => toolButtons.find((t) => t.tool === name)?.el;
-  // Display order: Select, Draw, Erase, Fill, Line, Rectangle, Text, Clear, Undo, Redo.
+  // Display order: Select, Draw, Erase, Recolor, Fill, Line, Rectangle, Text, Clear, Undo, Redo.
   container.replaceChildren(
     byTool('select'),
     byTool('draw'),
     byTool('erase'),
+    byTool('recolor'),
     byTool('fill'),
     byTool('line'),
     byTool('rect'),
@@ -101,6 +103,7 @@ export function createToolbar(container, options = {}) {
     selectButton: byTool('select'),
     drawButton: byTool('draw'),
     eraseButton: byTool('erase'),
+    recolorButton: byTool('recolor'),
     fillButton: byTool('fill'),
     lineButton: byTool('line'),
     rectButton: byTool('rect'),

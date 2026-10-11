@@ -52,8 +52,42 @@ body {
   overflow: hidden;
 }
 
-#grid {
+/* Rulers frame the grid canvas: corner + top ruler over left ruler + canvas. */
+#grid-frame {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-rows: 18px minmax(0, 1fr);
+}
+
+#ruler-corner,
+#ruler-top,
+#ruler-left {
+  background: var(--panel);
+  z-index: 1;
+}
+
+#ruler-corner {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  z-index: 2;
+}
+
+#ruler-top {
+  display: block;
+  height: 18px;
+  cursor: row-resize;
+}
+
+#ruler-left {
+  display: block;
+  width: 32px;
+  cursor: col-resize;
+}
+
+#grid {
   display: block;
   width: 100%;
   height: 100%;
@@ -518,4 +552,224 @@ body {
   background: #2d2d2d;
   border: 1px solid var(--border);
   border-radius: 3px;
+}
+
+/* Canvas size: cols x rows inputs + Fit. */
+.size-control {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.size-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+.size-input {
+  width: 4.2em;
+  padding: 0.3rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.size-times {
+  opacity: 0.6;
+}
+
+.size-fit {
+  padding: 0.3rem 0.5rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.size-fit:hover {
+  background: #3a3a3a;
+}
+
+.size-fit.active {
+  border-color: #4ea1ff;
+}
+
+/* Fixed canvas size: the canvas keeps its exact pixel size, centred on a
+   darker surround, and the area scrolls when it is larger than the window. */
+#grid-area.fixed-size {
+  overflow: auto;
+  background: #141414;
+  padding: 1rem;
+}
+
+#grid-area.fixed-size #grid-frame {
+  flex: none;
+  margin: auto;
+  grid-template-columns: 32px auto;
+  grid-template-rows: 18px auto;
+  outline: 1px solid var(--border);
+}
+
+/* Rulers stay pinned while a large fixed canvas scrolls. */
+#grid-area.fixed-size #ruler-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+}
+
+#grid-area.fixed-size #ruler-top {
+  position: sticky;
+  top: 0;
+}
+
+#grid-area.fixed-size #ruler-left {
+  position: sticky;
+  left: 0;
+}
+
+.guides-toggle {
+  padding: 0.3rem 0.5rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.guides-toggle:hover {
+  background: #3a3a3a;
+}
+
+.guides-toggle.active {
+  color: #2dd4bf;
+  border-color: #2dd4bf;
+}
+
+/* Project name (autosaved to localStorage) + New. */
+.project-control {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.project-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+.project-name {
+  width: 10em;
+  padding: 0.3rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.project-control {
+  position: relative;
+}
+
+.project-menu-toggle {
+  padding: 0.3rem 0.4rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.project-menu-toggle:hover {
+  background: #3a3a3a;
+}
+
+.project-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  min-width: 14em;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 4px;
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.project-menu[hidden] {
+  display: none;
+}
+
+.project-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  color: var(--fg);
+  background: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.project-menu-item:hover {
+  background: #3a3a3a;
+}
+
+.project-menu-item.current {
+  color: #4ea1ff;
+}
+
+.project-new {
+  padding: 0.3rem 0.5rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.project-new:hover {
+  background: #3a3a3a;
+}
+
+.project-status {
+  font-size: 0.75rem;
+  color: #f48771;
+}
+
+/* Hover info for a painted cell: glyph + Unicode name + code point. */
+.cell-tooltip {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  color: var(--fg);
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.cell-tooltip[hidden] {
+  display: none;
+}
+
+.cell-tooltip-glyph {
+  font-family: var(--mock-font, monospace);
+  font-size: 1.1rem;
 }
