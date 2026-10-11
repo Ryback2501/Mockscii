@@ -288,12 +288,23 @@ test('export then import restores the painted cells', async ({ page }) => {
   const download = await downloadPromise;
   const path = await download.path();
 
-  // Reload wipes the in-memory state, then import restores it.
-  await page.reload();
+  // A new project starts empty, then import restores the cells into it.
+  await page.getByTestId('project-control').locator('.project-new').click();
   expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(0);
 
   await page.getByTestId('io-controls').locator('input[type=file]').setInputFiles(path);
   await expect.poll(() => page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+});
+
+test('autosave restores the project after a reload', async ({ page }) => {
+  await page.goto('/Mockscii/');
+  const canvas = page.getByTestId('grid');
+  const box = await canvas.boundingBox();
+  await page.mouse.click(box.x + 60, box.y + 60);
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
+
+  await page.reload();
+  expect(await page.evaluate(() => window.__mockscii.cells.size)).toBe(1);
 });
 
 test('canvas auto-fits the grid area', async ({ page }) => {

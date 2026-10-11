@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { GLYPH_GROUPS, DEFAULT_GLYPH, allGlyphs, codePointLabel } from '../../src/glyphs.js';
+import {
+  GLYPH_GROUPS,
+  DEFAULT_GLYPH,
+  allGlyphs,
+  codePointLabel,
+  describeGlyph,
+} from '../../src/glyphs.js';
 
 describe('glyph groups', () => {
   it('exposes labelled, non-empty groups', () => {
@@ -53,5 +59,15 @@ describe('codePointLabel', () => {
   it('formats a U+XXXX label', () => {
     expect(codePointLabel('A')).toBe('U+0041');
     expect(codePointLabel('█')).toBe('U+2588');
+  });
+});
+
+describe('describeGlyph', () => {
+  it('gives the Unicode name and code point for offered glyphs', () => {
+    expect(describeGlyph('♥')).toBe('Black heart suit · U+2665');
+  });
+
+  it('falls back to the code point for glyphs outside the table', () => {
+    expect(describeGlyph('😀')).toBe('U+1F600');
   });
 });
